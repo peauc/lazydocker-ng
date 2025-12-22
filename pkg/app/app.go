@@ -4,12 +4,12 @@ import (
 	"io"
 	"strings"
 
-	"github.com/jesseduffield/lazydocker/pkg/commands"
-	"github.com/jesseduffield/lazydocker/pkg/config"
-	"github.com/jesseduffield/lazydocker/pkg/gui"
-	"github.com/jesseduffield/lazydocker/pkg/i18n"
-	"github.com/jesseduffield/lazydocker/pkg/log"
-	"github.com/jesseduffield/lazydocker/pkg/utils"
+	"github.com/peauc/lazydocker-ng/pkg/commands"
+	"github.com/peauc/lazydocker-ng/pkg/config"
+	"github.com/peauc/lazydocker-ng/pkg/gui"
+	"github.com/peauc/lazydocker-ng/pkg/i18n"
+	"github.com/peauc/lazydocker-ng/pkg/log"
+	"github.com/peauc/lazydocker-ng/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -41,16 +41,29 @@ func NewApp(config *config.AppConfig) (*App, error) {
 	}
 	app.OSCommand = commands.NewOSCommand(app.Log, config)
 
-	// here is the place to make use of the docker-compose.yml file in the current directory
-
 	app.DockerCommand, err = commands.NewDockerCommand(app.Log, app.OSCommand, app.Tr, app.Config, app.ErrorChan)
 	if err != nil {
 		return app, err
 	}
+
 	app.closers = append(app.closers, app.DockerCommand)
 	app.Gui, err = gui.NewGui(app.Log, app.DockerCommand, app.OSCommand, app.Tr, config, app.ErrorChan)
 	if err != nil {
 		return app, err
+	}
+
+	// here is the place to make use of the docker-compose.yml file in the current directory
+	err = app.OSCommand.RunCommand(
+		utils.ApplyTemplate(
+			config.UserConfig.CommandTemplates.CheckDockerComposeConfig,
+			app.DockerCommand.NewCommandObject(commands.CommandObject{}),
+		),
+	)
+	if err != nil {
+		app.DockerCommand.InDockerComposeProject = false
+		app.Log.Warn(err.Error())
+	} else {
+		app.Gui.State.Project = &commands.Project{Name: app.Gui.GetProjectName()}
 	}
 	return app, nil
 }

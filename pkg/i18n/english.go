@@ -111,6 +111,7 @@ type TranslationSet struct {
 	FilterList                  string
 	OpenInBrowser               string
 	SortContainersByState       string
+	SwitchProject               string
 
 	LogsTitle                 string
 	ConfigTitle               string
@@ -155,7 +156,7 @@ func englishSet() TranslationSet {
 
 		NoViewMachingNewLineFocusedSwitchStatement: "No view matching newLineFocused switch statement",
 
-		ErrorOccurred:                     "An error occurred! Please create an issue at https://github.com/jesseduffield/lazydocker/issues",
+		ErrorOccurred:                     "An error occurred! Please create an issue at https://github.com/peauc/lazydocker-ng/issues",
 		ConnectionFailed:                  "connection to docker client failed. You may need to restart the docker client",
 		UnattachableContainerError:        "Container does not support attaching. You must either run the service with the '-it' flag or use `stdin_open: true, tty: true` in the docker-compose.yml file",
 		WaitingForContainerInfo:           "Cannot proceed until docker gives us more information about the container. Please retry in a few moments.",
@@ -220,6 +221,7 @@ func englishSet() TranslationSet {
 		FilterList:                  "filter list",
 		OpenInBrowser:               "open in browser (first port is http)",
 		SortContainersByState:       "sort containers by state",
+		SwitchProject:               "switch project",
 
 		GlobalTitle:               "Global",
 		MainTitle:                 "Main",

@@ -13,12 +13,12 @@ import (
 	throttle "github.com/boz/go-throttle"
 	"github.com/jesseduffield/gocui"
 	lcUtils "github.com/jesseduffield/lazycore/pkg/utils"
-	"github.com/jesseduffield/lazydocker/pkg/commands"
-	"github.com/jesseduffield/lazydocker/pkg/config"
-	"github.com/jesseduffield/lazydocker/pkg/gui/panels"
-	"github.com/jesseduffield/lazydocker/pkg/gui/types"
-	"github.com/jesseduffield/lazydocker/pkg/i18n"
-	"github.com/jesseduffield/lazydocker/pkg/tasks"
+	"github.com/peauc/lazydocker-ng/pkg/commands"
+	"github.com/peauc/lazydocker-ng/pkg/config"
+	"github.com/peauc/lazydocker-ng/pkg/gui/panels"
+	"github.com/peauc/lazydocker-ng/pkg/gui/types"
+	"github.com/peauc/lazydocker-ng/pkg/i18n"
+	"github.com/peauc/lazydocker-ng/pkg/tasks"
 	"github.com/sasha-s/go-deadlock"
 	"github.com/sirupsen/logrus"
 )
@@ -87,7 +87,14 @@ type guiState struct {
 	// Maintains the state of manual filtering i.e. typing in a substring
 	// to filter on in the current panel.
 	Filter filterState
+
+	// Project used for navigation in projects
+	Project *commands.Project
 }
+
+//type projectState struct {
+//	name string
+//}
 
 type filterState struct {
 	// If true then we're either currently inside the filter view
@@ -297,7 +304,7 @@ func (gui *Gui) updateContainerDetails() error {
 
 func (gui *Gui) refresh() {
 	go func() {
-		if err := gui.refreshProject(); err != nil {
+		if err := gui.refreshProjects(); err != nil {
 			gui.Log.Error(err)
 		}
 	}()
