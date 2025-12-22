@@ -55,12 +55,6 @@ go mod vendor
 
 Hopefully this will be much more streamlined in the future :)
 
-## Code of conduct
-
-Please note by participating in this project, you agree to abide by the [code of conduct].
-
-[code of conduct]: https://github.com/jesseduffield/lazydocker/blob/master/CODE-OF-CONDUCT.md
-
 ## Any contributions you make will be under the MIT Software License
 
 In short, when you submit code changes, your submissions are understood to be
