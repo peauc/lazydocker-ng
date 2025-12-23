@@ -90,6 +90,13 @@ type guiState struct {
 
 	// Project used for navigation in projects
 	Project *commands.Project
+
+	// UI Mode system
+	UIMode UIMode
+
+	// Focus memory: stores last focused panel for each mode
+	// Key is mode, value is panel view name
+	LastFocusedPanel map[UIMode]string
 }
 
 //type projectState struct {
@@ -118,6 +125,13 @@ const (
 	SCREEN_FULL
 )
 
+type UIMode int
+
+const (
+	MODE_OPERATION UIMode = iota  // Projects, Services, Containers
+	MODE_MAINTENANCE              // Images, Volumes, Networks
+)
+
 func getScreenMode(config *config.AppConfig) WindowMaximisation {
 	switch config.UserConfig.Gui.ScreenMode {
 	case "normal":
@@ -144,6 +158,13 @@ func NewGui(log *logrus.Entry, dockerCommand *commands.DockerCommand, oSCommand 
 
 		ShowExitedContainers: true,
 		ScreenMode:           getScreenMode(config),
+
+		// Initialize UI mode system
+		UIMode: MODE_OPERATION,
+		LastFocusedPanel: map[UIMode]string{
+			MODE_OPERATION:   "",
+			MODE_MAINTENANCE: "",
+		},
 	}
 
 	gui := &Gui{
@@ -240,6 +261,10 @@ func (gui *Gui) Run() error {
 	if err := gui.createAllViews(); err != nil {
 		return err
 	}
+
+	// Sync mode tabs with initial UI mode
+	gui.updateModeTabsView()
+
 	if err := gui.setInitialViewContent(); err != nil {
 		return err
 	}

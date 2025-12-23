@@ -44,6 +44,9 @@ func (gui *Gui) getNetworksPanel() *panels.SideListPanel[*commands.Network] {
 			return a.Name < b.Name
 		},
 		GetTableCells: presentation.GetNetworkDisplayStrings,
+		Hide: func() bool {
+			return gui.State.UIMode != MODE_MAINTENANCE
+		},
 	}
 }
 

@@ -78,7 +78,8 @@ func (gui *Gui) getServicesPanel() *panels.SideListPanel[*commands.Service] {
 			return presentation.GetServiceDisplayStrings(&gui.Config.UserConfig.Gui, service)
 		},
 		Hide: func() bool {
-			return !gui.DockerCommand.InDockerComposeProject
+			// Show only in operation mode AND docker compose projects
+			return gui.State.UIMode != MODE_OPERATION || !gui.DockerCommand.InDockerComposeProject
 		},
 	}
 }

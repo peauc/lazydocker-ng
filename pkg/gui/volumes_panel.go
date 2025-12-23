@@ -50,6 +50,9 @@ func (gui *Gui) getVolumesPanel() *panels.SideListPanel[*commands.Volume] {
 			return a.Name < b.Name
 		},
 		GetTableCells: presentation.GetVolumeDisplayStrings,
+		Hide: func() bool {
+			return gui.State.UIMode != MODE_MAINTENANCE
+		},
 	}
 }
 

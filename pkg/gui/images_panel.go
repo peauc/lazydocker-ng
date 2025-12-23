@@ -62,6 +62,9 @@ func (gui *Gui) getImagesPanel() *panels.SideListPanel[*commands.Image] {
 			return a.ID < b.ID
 		},
 		GetTableCells: presentation.GetImageDisplayStrings,
+		Hide: func() bool {
+			return gui.State.UIMode != MODE_MAINTENANCE
+		},
 	}
 }
 

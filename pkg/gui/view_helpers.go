@@ -14,6 +14,14 @@ import (
 
 func (gui *Gui) handleGoTo(view *gocui.View) func(g *gocui.Gui, v *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
+		// Determine which mode this panel belongs to
+		targetMode := gui.getModeForPanel(view.Name())
+
+		// If panel is in different mode, switch modes
+		if targetMode != gui.State.UIMode {
+			return gui.switchToMode(targetMode)
+		}
+
 		gui.resetMainView()
 		return gui.switchFocus(view)
 	}
@@ -379,4 +387,94 @@ func (gui *Gui) allListPanels() []panels.ISideListPanel {
 
 func (gui *Gui) IsCurrentView(view *gocui.View) bool {
 	return view == gui.CurrentView()
+}
+
+// Mode switching helper functions
+
+func (gui *Gui) saveFocusForCurrentMode(viewName string) {
+	gui.State.LastFocusedPanel[gui.State.UIMode] = viewName
+}
+
+func (gui *Gui) getLastFocusedPanelForCurrentMode() string {
+	return gui.State.LastFocusedPanel[gui.State.UIMode]
+}
+
+func (gui *Gui) switchToNextMode() {
+	if gui.State.UIMode == MODE_OPERATION {
+		gui.State.UIMode = MODE_MAINTENANCE
+	} else {
+		gui.State.UIMode = MODE_OPERATION
+	}
+}
+
+func (gui *Gui) switchToPreviousMode() {
+	gui.switchToNextMode() // Same as next since only 2 modes
+}
+
+func (gui *Gui) isPanelVisible(viewName string) bool {
+	sideViewNames := gui.sideViewNames()
+	for _, name := range sideViewNames {
+		if name == viewName {
+			return true
+		}
+	}
+	return false
+}
+
+func (gui *Gui) getModeForPanel(viewName string) UIMode {
+	switch viewName {
+	case "project", "services", "containers":
+		return MODE_OPERATION
+	case "images", "volumes", "networks":
+		return MODE_MAINTENANCE
+	default:
+		return gui.State.UIMode
+	}
+}
+
+func (gui *Gui) switchToMode(targetMode UIMode) error {
+	if targetMode == gui.State.UIMode {
+		return nil
+	}
+
+	// Save current panel focus for this mode
+	currentViewName := gui.currentViewName()
+	if !gui.isPopupPanel(currentViewName) {
+		gui.saveFocusForCurrentMode(currentViewName)
+	}
+
+	// Switch mode
+	gui.State.UIMode = targetMode
+	gui.updateModeTabsView()
+
+	// Get panels for new mode
+	sideViewNames := gui.sideViewNames()
+	if len(sideViewNames) == 0 {
+		return nil
+	}
+
+	// Restore last focused panel or use first
+	focusedViewName := gui.getLastFocusedPanelForCurrentMode()
+	if focusedViewName == "" || !gui.isPanelVisible(focusedViewName) {
+		focusedViewName = sideViewNames[0]
+	}
+
+	focusedView, err := gui.g.View(focusedViewName)
+	if err != nil {
+		return err
+	}
+
+	gui.resetMainView()
+	return gui.switchFocus(focusedView)
+}
+
+func (gui *Gui) toggleMode() error {
+	gui.Log.Info("Toggling mode")
+	var targetMode UIMode
+	if gui.State.UIMode == MODE_OPERATION {
+		targetMode = MODE_MAINTENANCE
+	} else {
+		targetMode = MODE_OPERATION
+	}
+	return gui.switchToMode(targetMode)
 }

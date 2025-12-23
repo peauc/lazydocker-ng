@@ -70,6 +70,9 @@ func (gui *Gui) getProjectPanel() *panels.SideListPanel[*commands.Project] {
 			return (gui.State.Project != nil && gui.State.Project.Name == a.Name) || a.Name < b.Name
 		},
 		GetTableCells: presentation.GetProjectDisplayStrings,
+		Hide: func() bool {
+			return gui.State.UIMode != MODE_OPERATION
+		},
 	}
 }
 

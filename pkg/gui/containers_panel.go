@@ -99,6 +99,9 @@ func (gui *Gui) getContainersPanel() *panels.SideListPanel[*commands.Container] 
 		GetTableCells: func(container *commands.Container) []string {
 			return presentation.GetContainerDisplayStrings(&gui.Config.UserConfig.Gui, container)
 		},
+		Hide: func() bool {
+			return gui.State.UIMode != MODE_OPERATION
+		},
 	}
 }
 

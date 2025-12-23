@@ -26,6 +26,9 @@ func hideUnderScores() bool {
 }
 
 type Views struct {
+	// mode tabs
+	ModeTabs *gocui.View
+
 	// side panels
 	Project    *gocui.View
 	Services   *gocui.View
@@ -66,6 +69,7 @@ func (gui *Gui) orderedViewNameMappings() []viewNameMapping {
 	return []viewNameMapping{
 		// first layer. Ordering within this layer does not matter because there are
 		// no overlapping views
+		{viewPtr: &gui.Views.ModeTabs, name: "mode_tabs", autoPosition: true},
 		{viewPtr: &gui.Views.Project, name: "project", autoPosition: true},
 		{viewPtr: &gui.Views.Services, name: "services", autoPosition: true},
 		{viewPtr: &gui.Views.Containers, name: "containers", autoPosition: true},
@@ -113,6 +117,10 @@ func (gui *Gui) createAllViews() error {
 	}
 
 	selectedLineBgColor := GetGocuiStyle(gui.Config.UserConfig.Gui.Theme.SelectedLineBgColor)
+
+	gui.Views.ModeTabs.Frame = true
+	gui.Views.ModeTabs.Tabs = []string{"Operation", "Maintenance"}
+	gui.Views.ModeTabs.TabIndex = int(gui.State.UIMode)
 
 	gui.Views.Main.Wrap = gui.Config.UserConfig.Gui.WrapMainPanel
 	// when you run a docker container with the -it flags (interactive mode) it adds carriage returns for some reason. This is not docker's fault, it's an os-level default.

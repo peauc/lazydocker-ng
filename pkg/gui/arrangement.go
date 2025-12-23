@@ -36,27 +36,38 @@ func (gui *Gui) getWindowDimensions(informationStr string, appStatus string) map
 	}
 
 	root := &boxlayout.Box{
-		Direction: boxlayout.ROW,
+		Direction: boxlayout.COLUMN,
 		Children: []*boxlayout.Box{
+			// Main content area
 			{
-				Direction: sidePanelsDirection,
+				Direction: boxlayout.ROW,
 				Weight:    1,
 				Children: []*boxlayout.Box{
 					{
-						Direction:           boxlayout.ROW,
-						Weight:              sideSectionWeight,
-						ConditionalChildren: gui.sidePanelChildren,
+						Window: "mode_tabs",
+						Size:   1,
 					},
 					{
-						Window: "main",
-						Weight: mainSectionWeight,
+						Direction: sidePanelsDirection,
+						Weight:    1,
+						Children: []*boxlayout.Box{
+							{
+								Direction:           boxlayout.ROW,
+								Weight:              sideSectionWeight,
+								ConditionalChildren: gui.sidePanelChildren,
+							},
+							{
+								Window: "main",
+								Weight: mainSectionWeight,
+							},
+						},
+					},
+					{
+						Direction: boxlayout.COLUMN,
+						Size:      infoSectionSize,
+						Children:  gui.infoSectionChildren(informationStr, appStatus),
 					},
 				},
-			},
-			{
-				Direction: boxlayout.COLUMN,
-				Size:      infoSectionSize,
-				Children:  gui.infoSectionChildren(informationStr, appStatus),
 			},
 		},
 	}

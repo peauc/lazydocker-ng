@@ -129,6 +129,13 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Handler:  gui.handleCustomCommand,
 		},
 		{
+			ViewName:    "",
+			Key:         gocui.KeyTab,
+			Modifier:    gocui.ModNone,
+			Handler:     gui.handleToggleMode,
+			Description: "Toggle Mode",
+		},
+		{
 			ViewName:    "project",
 			Key:         'e',
 			Modifier:    gocui.ModNone,
@@ -524,8 +531,8 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			{ViewName: panel.GetView().Name(), Key: gocui.KeyArrowRight, Modifier: gocui.ModNone, Handler: gui.nextView},
 			{ViewName: panel.GetView().Name(), Key: 'h', Modifier: gocui.ModNone, Handler: gui.previousView},
 			{ViewName: panel.GetView().Name(), Key: 'l', Modifier: gocui.ModNone, Handler: gui.nextView},
-			{ViewName: panel.GetView().Name(), Key: gocui.KeyTab, Modifier: gocui.ModNone, Handler: gui.nextView},
-			{ViewName: panel.GetView().Name(), Key: gocui.KeyBacktab, Modifier: gocui.ModNone, Handler: gui.previousView},
+			//{ViewName: panel.GetView().Name(), Key: gocui.KeyTab, Modifier: gocui.ModNone, Handler: gui.nextView},
+			//{ViewName: panel.GetView().Name(), Key: gocui.KeyBacktab, Modifier: gocui.ModNone, Handler: gui.previousView},
 		}...)
 	}
 
