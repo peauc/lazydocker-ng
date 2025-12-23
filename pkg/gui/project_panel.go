@@ -3,20 +3,23 @@ package gui
 import (
 	"bytes"
 	"context"
-	"github.com/docker/docker/api/types/container"
-	"github.com/peauc/lazydocker-ng/pkg/gui/types"
+	"time"
+
 	"log"
 	"path"
 	"strings"
 
+	"github.com/docker/docker/api/types/container"
+	"github.com/peauc/lazydocker-ng/pkg/gui/types"
+
 	"github.com/fatih/color"
 	"github.com/jesseduffield/gocui"
+	"github.com/jesseduffield/yaml"
 	"github.com/peauc/lazydocker-ng/pkg/commands"
 	"github.com/peauc/lazydocker-ng/pkg/gui/panels"
 	"github.com/peauc/lazydocker-ng/pkg/gui/presentation"
 	"github.com/peauc/lazydocker-ng/pkg/tasks"
 	"github.com/peauc/lazydocker-ng/pkg/utils"
-	"github.com/jesseduffield/yaml"
 )
 
 // Although at the moment we'll only have one project, in future we could have
@@ -70,6 +73,9 @@ func (gui *Gui) getProjectPanel() *panels.SideListPanel[*commands.Project] {
 			return (gui.State.Project != nil && gui.State.Project.Name == a.Name) || a.Name < b.Name
 		},
 		GetTableCells: presentation.GetProjectDisplayStrings,
+		OnClick: func(project *commands.Project) error {
+			return gui.handleProjectSelect(nil, nil)
+		},
 		Hide: func() bool {
 			return gui.State.UIMode != MODE_OPERATION
 		},
@@ -83,11 +89,58 @@ func (gui *Gui) refreshProjects() error {
 	}
 
 	projectsMap := make(map[string]*commands.Project)
+	servicesPerProject := make(map[string]map[string]bool)
 
+	// Build project info from containers
 	for _, container := range containers {
-		if projectName, exists := container.Labels["com.docker.compose.project"]; exists && projectName != "" {
-			projectsMap[projectName] = &commands.Project{Name: projectName}
+		projectName, exists := container.Labels["com.docker.compose.project"]
+		if !exists || projectName == "" {
+			continue
 		}
+
+		if _, ok := projectsMap[projectName]; !ok {
+			projectsMap[projectName] = &commands.Project{
+				Name:            projectName,
+				IsDockerCompose: true,
+				Status:          "unknown",
+				LastUpdated:     time.Now(),
+			}
+			servicesPerProject[projectName] = make(map[string]bool)
+		}
+
+		project := projectsMap[projectName]
+		project.ContainerCount++
+
+		// Count running containers
+		if container.State == "running" {
+			project.RunningCount++
+		}
+
+		// Extract path from first container
+		if project.Path == "" {
+			if workingDir, ok := container.Labels["com.docker.compose.project.working_dir"]; ok {
+				project.Path = workingDir
+			}
+		}
+
+		// Track unique services
+		if serviceName, ok := container.Labels["com.docker.compose.service"]; ok && serviceName != "" {
+			servicesPerProject[projectName][serviceName] = true
+		}
+	}
+
+	// Determine project status and count services
+	for _, project := range projectsMap {
+		if project.RunningCount == 0 {
+			project.Status = "stopped"
+		} else if project.RunningCount == project.ContainerCount {
+			project.Status = "running"
+		} else {
+			project.Status = "mixed"
+		}
+
+		// Count unique services
+		project.ServiceCount = len(servicesPerProject[project.Name])
 	}
 
 	projectsList := make([]*commands.Project, 0, len(projectsMap))
@@ -95,13 +148,50 @@ func (gui *Gui) refreshProjects() error {
 		projectsList = append(projectsList, project)
 	}
 
-	// Add current's folder project if exists
+	// Add current directory project if in compose project
 	if gui.DockerCommand.InDockerComposeProject {
-		projectsList = append(projectsList, &commands.Project{Name: gui.GetProjectName()})
+		currentProjectName := gui.GetProjectName()
+		if _, exists := projectsMap[currentProjectName]; !exists {
+			projectsList = append(projectsList, &commands.Project{
+				Name:            currentProjectName,
+				Path:            gui.Config.ProjectDir,
+				IsDockerCompose: true,
+				Status:          "unknown",
+			})
+		}
 	}
-	gui.Panels.Projects.SetItems(projectsList)
 
+	gui.Panels.Projects.SetItems(projectsList)
 	return gui.Panels.Projects.RerenderList()
+}
+
+func (gui *Gui) handleProjectSelect(g *gocui.Gui, v *gocui.View) error {
+	project, err := gui.Panels.Projects.GetSelectedItem()
+	if err != nil {
+		gui.Log.Error(err)
+		return nil
+	}
+
+	gui.Log.Info("Selected project: " + project.Name)
+
+	gui.State.Project = project
+
+	gui.DockerCommand.CurrentDockerComposeProject = project.Name
+	gui.DockerCommand.InDockerComposeProject = project.IsDockerCompose
+
+	if err := gui.refreshContainersAndServices(); err != nil {
+		gui.Log.Error(err)
+		return err
+	}
+
+	if err := gui.Panels.Services.RerenderList(); err != nil {
+		return err
+	}
+	if err := gui.Panels.Containers.RerenderList(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (gui *Gui) GetProjectName() string {
