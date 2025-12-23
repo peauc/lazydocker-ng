@@ -2,9 +2,9 @@ package gui
 
 import (
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
+	"github.com/mattn/go-runewidth"
 	"github.com/peauc/lazydocker-ng/pkg/gui/panels"
 	"github.com/peauc/lazydocker-ng/pkg/utils"
-	"github.com/mattn/go-runewidth"
 	"github.com/samber/lo"
 )
 
@@ -14,8 +14,8 @@ import (
 const INFO_SECTION_PADDING = " "
 
 func (gui *Gui) getWindowDimensions(informationStr string, appStatus string) map[string]boxlayout.Dimensions {
-	minimumHeight := 9
-	minimumWidth := 10
+	minimumHeight := 12
+	minimumWidth := 50
 	width, height := gui.g.Size()
 	if width < minimumWidth || height < minimumHeight {
 		return boxlayout.ArrangeWindows(&boxlayout.Box{Window: "limit"}, 0, 0, width, height)
