@@ -128,8 +128,8 @@ const (
 type UIMode int
 
 const (
-	MODE_OPERATION UIMode = iota  // Projects, Services, Containers
-	MODE_MAINTENANCE              // Images, Volumes, Networks
+	MODE_CONTAINER UIMode = iota  // Projects, Services, Containers
+	MODE_RESSOURCES               // Images, Volumes, Networks
 )
 
 func getScreenMode(config *config.AppConfig) WindowMaximisation {
@@ -160,10 +160,10 @@ func NewGui(log *logrus.Entry, dockerCommand *commands.DockerCommand, oSCommand 
 		ScreenMode:           getScreenMode(config),
 
 		// Initialize UI mode system
-		UIMode: MODE_OPERATION,
+		UIMode: MODE_CONTAINER,
 		LastFocusedPanel: map[UIMode]string{
-			MODE_OPERATION:   "",
-			MODE_MAINTENANCE: "",
+			MODE_CONTAINER:  "",
+			MODE_RESSOURCES: "",
 		},
 	}
 

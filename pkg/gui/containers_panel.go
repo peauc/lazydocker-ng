@@ -100,7 +100,7 @@ func (gui *Gui) getContainersPanel() *panels.SideListPanel[*commands.Container] 
 			return presentation.GetContainerDisplayStrings(&gui.Config.UserConfig.Gui, container)
 		},
 		Hide: func() bool {
-			return gui.State.UIMode != MODE_OPERATION
+			return gui.State.UIMode != MODE_CONTAINER
 		},
 	}
 }

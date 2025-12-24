@@ -400,10 +400,10 @@ func (gui *Gui) getLastFocusedPanelForCurrentMode() string {
 }
 
 func (gui *Gui) switchToNextMode() {
-	if gui.State.UIMode == MODE_OPERATION {
-		gui.State.UIMode = MODE_MAINTENANCE
+	if gui.State.UIMode == MODE_CONTAINER {
+		gui.State.UIMode = MODE_RESSOURCES
 	} else {
-		gui.State.UIMode = MODE_OPERATION
+		gui.State.UIMode = MODE_CONTAINER
 	}
 }
 
@@ -424,9 +424,9 @@ func (gui *Gui) isPanelVisible(viewName string) bool {
 func (gui *Gui) getModeForPanel(viewName string) UIMode {
 	switch viewName {
 	case "project", "services", "containers":
-		return MODE_OPERATION
+		return MODE_CONTAINER
 	case "images", "volumes", "networks":
-		return MODE_MAINTENANCE
+		return MODE_RESSOURCES
 	default:
 		return gui.State.UIMode
 	}
@@ -471,10 +471,10 @@ func (gui *Gui) switchToMode(targetMode UIMode) error {
 func (gui *Gui) toggleMode() error {
 	gui.Log.Info("Toggling mode")
 	var targetMode UIMode
-	if gui.State.UIMode == MODE_OPERATION {
-		targetMode = MODE_MAINTENANCE
+	if gui.State.UIMode == MODE_CONTAINER {
+		targetMode = MODE_RESSOURCES
 	} else {
-		targetMode = MODE_OPERATION
+		targetMode = MODE_CONTAINER
 	}
 	return gui.switchToMode(targetMode)
 }
