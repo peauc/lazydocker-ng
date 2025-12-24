@@ -65,6 +65,9 @@ func NewApp(config *config.AppConfig) (*App, error) {
 	} else {
 		app.Gui.State.Project = &commands.Project{Name: app.Gui.GetProjectName()}
 	}
+
+	// Remember if we started in a compose directory (for refreshProjects)
+	app.DockerCommand.StartedInDockerComposeProject = app.DockerCommand.InDockerComposeProject
 	return app, nil
 }
 

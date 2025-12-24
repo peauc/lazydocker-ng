@@ -8,23 +8,26 @@ import (
 	"github.com/peauc/lazydocker-ng/pkg/utils"
 )
 
-func GetProjectDisplayStrings(project *commands.Project) []string {
+func GetProjectDisplayStrings(project *commands.Project, selectedProjectName string) []string {
 	statusIcon := getProjectStatusIcon(project)
 
 	containerInfo := fmt.Sprintf("%d/%d", project.RunningCount, project.ContainerCount)
-	serviceInfo := fmt.Sprintf("%d", project.ServiceCount)
 
 	path := project.Path
 	if len(path) > 30 {
 		path = "..." + path[len(path)-27:]
 	}
 
+	// Highlight the project name if it's the selected project
+	projectName := project.Name
+	if selectedProjectName != "" && project.Name == selectedProjectName {
+		projectName = utils.ColoredStringDirect(project.Name, color.New(color.FgGreen, color.Bold))
+	}
+
 	return []string{
 		statusIcon,
-		project.Name,
+		projectName,
 		containerInfo,
-		serviceInfo,
-		utils.ColoredString(path, color.FgCyan),
 	}
 }
 
@@ -38,10 +41,13 @@ func getProjectStatusIcon(project *commands.Project) string {
 		c = color.FgGreen
 	case "stopped":
 		icon = "○"
-		c = color.FgRed
+		c = color.FgYellow
 	case "mixed":
 		icon = "◐"
 		c = color.FgYellow
+	case "not created":
+		icon = "○"
+		c = color.FgRed
 	default:
 		icon = "?"
 		c = color.FgWhite

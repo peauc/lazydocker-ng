@@ -34,16 +34,17 @@ const (
 
 // DockerCommand is our main docker interface
 type DockerCommand struct {
-	Log                         *logrus.Entry
-	OSCommand                   *OSCommand
-	Tr                          *i18n.TranslationSet
-	Config                      *config.AppConfig
-	Client                      *client.Client
-	InDockerComposeProject      bool
-	CurrentDockerComposeProject string
-	ErrorChan                   chan error
-	ContainerMutex              deadlock.Mutex
-	ServiceMutex                deadlock.Mutex
+	Log                             *logrus.Entry
+	OSCommand                       *OSCommand
+	Tr                              *i18n.TranslationSet
+	Config                          *config.AppConfig
+	Client                          *client.Client
+	InDockerComposeProject          bool
+	StartedInDockerComposeProject   bool // Tracks if we started in a compose dir (never changes)
+	CurrentDockerComposeProject     string
+	ErrorChan                       chan error
+	ContainerMutex                  deadlock.Mutex
+	ServiceMutex                    deadlock.Mutex
 
 	Closers []io.Closer
 }

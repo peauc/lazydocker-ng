@@ -72,7 +72,13 @@ func (gui *Gui) getProjectPanel() *panels.SideListPanel[*commands.Project] {
 		Sort: func(a *commands.Project, b *commands.Project) bool {
 			return (gui.State.Project != nil && gui.State.Project.Name == a.Name) || a.Name < b.Name
 		},
-		GetTableCells: presentation.GetProjectDisplayStrings,
+		GetTableCells: func(project *commands.Project) []string {
+			selectedProjectName := ""
+			if gui.State.Project != nil {
+				selectedProjectName = gui.State.Project.Name
+			}
+			return presentation.GetProjectDisplayStrings(project, selectedProjectName)
+		},
 		OnClick: func(project *commands.Project) error {
 			return gui.handleProjectSelect(nil, nil)
 		},
@@ -111,25 +117,39 @@ func (gui *Gui) refreshProjects() error {
 		project := projectsMap[projectName]
 		project.ContainerCount++
 
-		// Count running containers
 		if container.State == "running" {
 			project.RunningCount++
 		}
 
-		// Extract path from first container
 		if project.Path == "" {
 			if workingDir, ok := container.Labels["com.docker.compose.project.working_dir"]; ok {
 				project.Path = workingDir
 			}
 		}
 
-		// Track unique services
 		if serviceName, ok := container.Labels["com.docker.compose.service"]; ok && serviceName != "" {
 			servicesPerProject[projectName][serviceName] = true
 		}
 	}
 
-	// Determine project status and count services
+	projectsList := make([]*commands.Project, 0, len(projectsMap))
+	for _, project := range projectsMap {
+		projectsList = append(projectsList, project)
+	}
+
+	// Always add the current directory project if we started in a docker-compose project
+	if gui.DockerCommand.StartedInDockerComposeProject {
+		currentDirProjectName := path.Base(gui.Config.ProjectDir)
+		if _, exists := projectsMap[currentDirProjectName]; !exists {
+			projectsList = append(projectsList, &commands.Project{
+				Name:            currentDirProjectName,
+				Path:            gui.Config.ProjectDir,
+				IsDockerCompose: true,
+				Status:          "not created",
+			})
+		}
+	}
+
 	for _, project := range projectsMap {
 		if project.RunningCount == 0 {
 			project.Status = "stopped"
@@ -139,26 +159,7 @@ func (gui *Gui) refreshProjects() error {
 			project.Status = "mixed"
 		}
 
-		// Count unique services
 		project.ServiceCount = len(servicesPerProject[project.Name])
-	}
-
-	projectsList := make([]*commands.Project, 0, len(projectsMap))
-	for _, project := range projectsMap {
-		projectsList = append(projectsList, project)
-	}
-
-	// Add current directory project if in compose project
-	if gui.DockerCommand.InDockerComposeProject {
-		currentProjectName := gui.GetProjectName()
-		if _, exists := projectsMap[currentProjectName]; !exists {
-			projectsList = append(projectsList, &commands.Project{
-				Name:            currentProjectName,
-				Path:            gui.Config.ProjectDir,
-				IsDockerCompose: true,
-				Status:          "unknown",
-			})
-		}
 	}
 
 	gui.Panels.Projects.SetItems(projectsList)
@@ -184,6 +185,9 @@ func (gui *Gui) handleProjectSelect(g *gocui.Gui, v *gocui.View) error {
 		return err
 	}
 
+	if err := gui.Panels.Projects.RerenderList(); err != nil {
+		return err
+	}
 	if err := gui.Panels.Services.RerenderList(); err != nil {
 		return err
 	}

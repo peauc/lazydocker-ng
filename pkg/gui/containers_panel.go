@@ -22,6 +22,10 @@ import (
 func (gui *Gui) getContainersPanel() *panels.SideListPanel[*commands.Container] {
 	// Standalone containers are containers which are either one-off containers, or whose service is not part of this docker-compose context.
 	isStandaloneContainer := func(container *commands.Container) bool {
+		if gui.State.Project != nil && container.ProjectName == gui.State.Project.Name {
+			return false
+		}
+
 		if container.OneOff || container.ServiceName == "" {
 			return true
 		}
