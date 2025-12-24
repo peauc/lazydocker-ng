@@ -3,11 +3,10 @@ package gui
 import (
 	"bytes"
 	"context"
-	"time"
-
-	"log"
+	"fmt"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/peauc/lazydocker-ng/pkg/gui/types"
@@ -137,7 +136,6 @@ func (gui *Gui) refreshProjects() error {
 		projectsList = append(projectsList, project)
 	}
 
-	// Always add the current directory project if we started in a docker-compose project
 	if gui.DockerCommand.StartedInDockerComposeProject {
 		currentDirProjectName := path.Base(gui.Config.ProjectDir)
 		if _, exists := projectsMap[currentDirProjectName]; !exists {
@@ -192,6 +190,10 @@ func (gui *Gui) handleProjectSelect(g *gocui.Gui, v *gocui.View) error {
 		return err
 	}
 	if err := gui.Panels.Containers.RerenderList(); err != nil {
+		return err
+	}
+
+	if err := gui.Panels.Projects.HandleSelect(); err != nil {
 		return err
 	}
 
@@ -260,9 +262,36 @@ func (gui *Gui) renderAllLogs(_project *commands.Project) tasks.TaskFunc {
 	})
 }
 
-func (gui *Gui) renderDockerComposeConfig(_project *commands.Project) tasks.TaskFunc {
+func (gui *Gui) renderDockerComposeConfig(project *commands.Project) tasks.TaskFunc {
 	return gui.NewSimpleRenderStringTask(func() string {
-		return utils.ColoredYamlString(gui.DockerCommand.DockerComposeConfig())
+		output, err := gui.DockerCommand.DockerComposeConfigForProjectWithError(project.Path)
+
+		if err != nil {
+			if commands.IsDockerComposeFileNotFoundError(err) {
+				return fmt.Sprintf("%s\n\n%s\n%s",
+					utils.ColoredString("No docker-compose file found", color.FgYellow),
+					utils.ColoredString("Project: ", color.FgWhite)+project.Name,
+					utils.ColoredString("Path: ", color.FgWhite)+project.Path)
+			}
+
+			if commands.IsDockerComposeYAMLError(err) {
+				return fmt.Sprintf("%s\n\n%s",
+					utils.ColoredString("YAML parsing error in compose file", color.FgRed),
+					err.Error())
+			}
+
+			if commands.IsDockerComposeValidationError(err) {
+				return fmt.Sprintf("%s\n\n%s",
+					utils.ColoredString("Compose file validation failed", color.FgRed),
+					err.Error())
+			}
+
+			return fmt.Sprintf("%s\n\n%s",
+				utils.ColoredString("Failed to read docker-compose config", color.FgRed),
+				err.Error())
+		}
+
+		return utils.ColoredYamlString(output)
 	})
 }
 
@@ -305,7 +334,7 @@ func (gui *Gui) handleCreateProjectMenu(g *gocui.Gui, v *gocui.View) error {
 	testMenuItem := &types.MenuItem{
 		LabelColumns: []string{"t", "test"},
 		OnPress: func() error {
-			log.Println("tested")
+			gui.Log.Println("tested")
 			return nil
 		},
 	}

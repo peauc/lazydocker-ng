@@ -63,10 +63,12 @@ func NewApp(config *config.AppConfig) (*App, error) {
 		app.DockerCommand.InDockerComposeProject = false
 		app.Log.Warn(err.Error())
 	} else {
-		app.Gui.State.Project = &commands.Project{Name: app.Gui.GetProjectName()}
+		app.Gui.State.Project = &commands.Project{
+			Name:            app.Gui.GetProjectName(),
+			IsDockerCompose: true,
+		}
 	}
 
-	// Remember if we started in a compose directory (for refreshProjects)
 	app.DockerCommand.StartedInDockerComposeProject = app.DockerCommand.InDockerComposeProject
 	return app, nil
 }

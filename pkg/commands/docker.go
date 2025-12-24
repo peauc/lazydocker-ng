@@ -34,17 +34,17 @@ const (
 
 // DockerCommand is our main docker interface
 type DockerCommand struct {
-	Log                             *logrus.Entry
-	OSCommand                       *OSCommand
-	Tr                              *i18n.TranslationSet
-	Config                          *config.AppConfig
-	Client                          *client.Client
-	InDockerComposeProject          bool
-	StartedInDockerComposeProject   bool // Tracks if we started in a compose dir (never changes)
-	CurrentDockerComposeProject     string
-	ErrorChan                       chan error
-	ContainerMutex                  deadlock.Mutex
-	ServiceMutex                    deadlock.Mutex
+	Log                           *logrus.Entry
+	OSCommand                     *OSCommand
+	Tr                            *i18n.TranslationSet
+	Config                        *config.AppConfig
+	Client                        *client.Client
+	InDockerComposeProject        bool
+	StartedInDockerComposeProject bool // Tracks if we started in a compose dir (never changes)
+	CurrentDockerComposeProject   string
+	ErrorChan                     chan error
+	ContainerMutex                deadlock.Mutex
+	ServiceMutex                  deadlock.Mutex
 
 	Closers []io.Closer
 }
@@ -390,6 +390,67 @@ func (c *DockerCommand) DockerComposeConfig() string {
 		output = err.Error()
 	}
 	return output
+}
+
+// DockerComposeConfigForProject gets the docker compose config for a specific project
+func (c *DockerCommand) DockerComposeConfigForProject(projectPath string) string {
+	output, _ := c.DockerComposeConfigForProjectWithError(projectPath)
+	return output
+}
+
+// DockerComposeConfigForProjectWithError gets the docker compose config and returns the error separately
+func (c *DockerCommand) DockerComposeConfigForProjectWithError(projectPath string) (string, error) {
+	if projectPath == "" {
+		output, err := c.OSCommand.RunCommandWithOutput(
+			utils.ApplyTemplate(
+				c.OSCommand.Config.UserConfig.CommandTemplates.DockerComposeConfig,
+				c.NewCommandObject(CommandObject{}),
+			),
+		)
+		return output, err
+	}
+
+	cmd := c.OSCommand.ExecutableFromString(
+		utils.ApplyTemplate(
+			c.OSCommand.Config.UserConfig.CommandTemplates.DockerComposeConfig,
+			c.NewCommandObject(CommandObject{}),
+		),
+	)
+	cmd.Dir = projectPath
+
+	output, err := c.OSCommand.RunExecutableWithOutput(cmd)
+	return output, err
+}
+
+// IsDockerComposeFileNotFoundError checks if the error is due to missing docker-compose file
+func IsDockerComposeFileNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	return strings.Contains(errStr, "no configuration file provided") ||
+		strings.Contains(errStr, "not found")
+}
+
+// IsDockerComposeYAMLError checks if the error is due to YAML parsing issues
+func IsDockerComposeYAMLError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	return strings.Contains(errStr, "yaml:") ||
+		strings.Contains(errStr, "parsing")
+}
+
+// IsDockerComposeValidationError checks if the error is due to schema validation
+func IsDockerComposeValidationError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	return strings.Contains(errStr, "error decoding") ||
+		strings.Contains(errStr, "validation failed") ||
+		strings.Contains(errStr, "invalid")
 }
 
 // determineDockerHost tries to the determine the docker host that we should connect to

@@ -20,9 +20,8 @@ import (
 )
 
 func (gui *Gui) getContainersPanel() *panels.SideListPanel[*commands.Container] {
-	// Standalone containers are containers which are either one-off containers, or whose service is not part of this docker-compose context.
 	isStandaloneContainer := func(container *commands.Container) bool {
-		if gui.State.Project != nil && container.ProjectName == gui.State.Project.Name {
+		if gui.State.Project != nil && gui.State.Project.IsDockerCompose && container.ProjectName == gui.State.Project.Name {
 			return false
 		}
 
@@ -87,11 +86,14 @@ func (gui *Gui) getContainersPanel() *panels.SideListPanel[*commands.Container] 
 			return sortContainers(a, b, gui.Config.UserConfig.Gui.LegacySortContainers)
 		},
 		Filter: func(container *commands.Container) bool {
-			// Note that this is O(N*M) time complexity where N is the number of services
-			// and M is the number of containers. We expect N to be small but M may be large,
-			// so we will need to keep an eye on this.
-			if !gui.Config.UserConfig.Gui.ShowAllContainers && !isStandaloneContainer(container) {
-				return false
+			if gui.State.Project != nil && !gui.State.Project.IsDockerCompose {
+				if container.ProjectName != gui.State.Project.Name {
+					return false
+				}
+			} else {
+				if !gui.Config.UserConfig.Gui.ShowAllContainers && !isStandaloneContainer(container) {
+					return false
+				}
 			}
 
 			if !gui.State.ShowExitedContainers && container.Container.State == "exited" {
