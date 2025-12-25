@@ -13,14 +13,14 @@ GOOS=js GOARCH=wasm go build -o yourfile.wasm
 
 You also need 5 other files in the same directory as the wasm. Four (`tcell.html`, `tcell.js`, `termstyle.css`, and `beep.wav`) are provided in the `webfiles` directory. The last one, `wasm_exec.js`, can be copied from GOROOT into the current directory by executing
 ```sh
-cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" ./
+cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" ./
 ```
 
 In `tcell.js`, you also need to change the constant
 ```js
 const wasmFilePath = "yourfile.wasm"
 ```
-to the file you outputed to when building.
+to the file you outputted to when building.
 
 ## Displaying your project
 
@@ -49,7 +49,7 @@ func main() {
 To see the webpage with this example, you can type in `localhost:8080/tcell.html` into your browser while `server.go` is running.
 
 ### Embedding
-It is recomended to use an iframe if you want to embed the app into a webpage:
+It is recommended to use an iframe if you want to embed the app into a webpage:
 ```html
 <iframe src="tcell.html" title="Tcell app"></iframe>
 ```
