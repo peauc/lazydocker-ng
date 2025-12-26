@@ -2,15 +2,31 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
 
 # Lazydocker 菜单
 
+## 全局
+
+<pre>
+  <kbd>	</kbd>: Toggle Mode
+  <kbd>+</kbd>: 下一个屏幕模式（正常/半屏/全屏）
+  <kbd>_</kbd>: 上一个屏幕模式
+  <kbd>1</kbd>: focus projects panel
+  <kbd>2</kbd>: focus services panel
+  <kbd>3</kbd>: focus containers panel
+  <kbd>4</kbd>: focus images panel
+  <kbd>5</kbd>: focus volumes panel
+  <kbd>6</kbd>: focus networks panel
+</pre>
+
 ## 项目
 
 <pre>
   <kbd>e</kbd>: 编辑lazydocker配置
+  <kbd>P</kbd>: switch project
   <kbd>o</kbd>: 打开lazydocker配置
   <kbd>m</kbd>: 查看日志
   <kbd>enter</kbd>: 聚焦主面板
   <kbd>[</kbd>: 上一个选项卡
   <kbd>]</kbd>: 下一个选项卡
+  <kbd>/</kbd>: 过滤列表
 </pre>
 
 ## 容器
@@ -19,7 +35,7 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
   <kbd>d</kbd>: 移除
   <kbd>e</kbd>: 隐藏/显示已停止的容器
   <kbd>p</kbd>: 暂停
-  <kbd>s</kbd>: 停止
+  <kbd>s</kbd>: start/stop
   <kbd>r</kbd>: 重新启动
   <kbd>a</kbd>: attach
   <kbd>m</kbd>: 查看日志
@@ -97,17 +113,4 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
 
 <pre>
   <kbd>esc</kbd>: 返回
-</pre>
-
-## 全局
-
-<pre>
-  <kbd>+</kbd>: 下一个屏幕模式（正常/半屏/全屏）
-  <kbd>_</kbd>: 上一个屏幕模式
-  <kbd>1</kbd>: focus projects panel
-  <kbd>2</kbd>: focus services panel
-  <kbd>3</kbd>: focus containers panel
-  <kbd>4</kbd>: focus images panel
-  <kbd>5</kbd>: focus volumes panel
-  <kbd>6</kbd>: focus networks panel
 </pre>
