@@ -6,3 +6,5 @@ Lazydocker.code-workspace
 
 .envrc
 .env
+
+dist/
