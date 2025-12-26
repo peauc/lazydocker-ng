@@ -94,7 +94,7 @@ func (gui *Gui) focusPoint(selectedX int, selectedY int, lineCount int, v *gocui
 	originalOy := oy
 	cx, cy := v.Cursor()
 	originalCy := cy
-	_, height := v.Size()
+	_, height := v.InnerSize()
 
 	ly := utils.Max(height-1, 0)
 
