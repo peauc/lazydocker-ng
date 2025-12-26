@@ -69,7 +69,7 @@ func (gui *Gui) getProjectPanel() *panels.SideListPanel[*commands.Project] {
 		Gui:            gui.intoInterface(),
 
 		Sort: func(a *commands.Project, b *commands.Project) bool {
-			return (gui.State.Project != nil && gui.State.Project.Name == a.Name) || a.Name < b.Name
+			return a.Name < b.Name
 		},
 		GetTableCells: func(project *commands.Project) []string {
 			selectedProjectName := ""
