@@ -1,5 +1,7 @@
 A simple terminal UI for both docker and docker-compose, written in Go with the [gocui](https://github.com/jroimartin/gocui "gocui") library.
 
+Continuing the great work of Jesse Duffield and other contributors of [the original project](https://github.com/jesseduffield/lazydocker).
+
 [![Go Report Card](https://goreportcard.com/badge/github.com/jesseduffield/lazydocker)](https://goreportcard.com/report/github.com/jesseduffield/lazydocker)
 ![GitHub repo size](https://img.shields.io/github/repo-size/peauc/lazydocker-ng)
 [![GitHub Releases](https://img.shields.io/github/downloads/peauc/lazydocker-ng/total)](https://github.com/peauc/lazydocker-ng/releases)
@@ -73,17 +75,13 @@ go get github.com/peauc/lazydocker-ng
 
 ### Arch Linux AUR
 
-You can install lazydocker using the [AUR](https://aur.archlinux.org/packages/lazydocker-ng) by running:
+You can install lazydocker using the [AUR](https://aur.archlinux.org/packages/lazydocker-ng-bin) by running:
 
 ```sh
 paru -S lazydocker-ng
 ```
 
 ### Docker
-
-[![Docker Pulls](https://img.shields.io/docker/pulls/lazyteam/lazydocker.svg)](https://hub.docker.com/r/lazyteam/lazydocker)
-[![Docker Stars](https://img.shields.io/docker/stars/lazyteam/lazydocker.svg)](https://hub.docker.com/r/lazyteam/lazydocker)
-[![Docker Automated](https://img.shields.io/docker/cloud/automated/lazyteam/lazydocker.svg)](https://hub.docker.com/r/lazyteam/lazydocker)
 
 1. <details><summary>Click if you have an ARM device</summary><p>
    - If you have a ARM 32 bit v6 architecture
