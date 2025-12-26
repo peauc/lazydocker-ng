@@ -3,9 +3,10 @@ package gui
 import (
 	"bytes"
 	"context"
-	"log"
+	"fmt"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/peauc/lazydocker-ng/pkg/gui/types"
@@ -68,11 +69,20 @@ func (gui *Gui) getProjectPanel() *panels.SideListPanel[*commands.Project] {
 		Gui:            gui.intoInterface(),
 
 		Sort: func(a *commands.Project, b *commands.Project) bool {
-			return (gui.State.Project != nil && gui.State.Project.Name == a.Name) || a.Name < b.Name
+			return a.Name < b.Name
 		},
-		GetTableCells: presentation.GetProjectDisplayStrings,
+		GetTableCells: func(project *commands.Project) []string {
+			selectedProjectName := ""
+			if gui.State.Project != nil {
+				selectedProjectName = gui.State.Project.Name
+			}
+			return presentation.GetProjectDisplayStrings(project, selectedProjectName)
+		},
+		OnClick: func(project *commands.Project) error {
+			return gui.handleProjectSelect(nil, nil)
+		},
 		Hide: func() bool {
-			return gui.State.UIMode != MODE_OPERATION
+			return gui.State.UIMode != MODE_CONTAINER
 		},
 	}
 }
@@ -84,10 +94,40 @@ func (gui *Gui) refreshProjects() error {
 	}
 
 	projectsMap := make(map[string]*commands.Project)
+	servicesPerProject := make(map[string]map[string]bool)
 
+	// Build project info from containers
 	for _, container := range containers {
-		if projectName, exists := container.Labels["com.docker.compose.project"]; exists && projectName != "" {
-			projectsMap[projectName] = &commands.Project{Name: projectName}
+		projectName, exists := container.Labels["com.docker.compose.project"]
+		if !exists || projectName == "" {
+			continue
+		}
+
+		if _, ok := projectsMap[projectName]; !ok {
+			projectsMap[projectName] = &commands.Project{
+				Name:            projectName,
+				IsDockerCompose: true,
+				Status:          "unknown",
+				LastUpdated:     time.Now(),
+			}
+			servicesPerProject[projectName] = make(map[string]bool)
+		}
+
+		project := projectsMap[projectName]
+		project.ContainerCount++
+
+		if container.State == "running" {
+			project.RunningCount++
+		}
+
+		if project.Path == "" {
+			if workingDir, ok := container.Labels["com.docker.compose.project.working_dir"]; ok {
+				project.Path = workingDir
+			}
+		}
+
+		if serviceName, ok := container.Labels["com.docker.compose.service"]; ok && serviceName != "" {
+			servicesPerProject[projectName][serviceName] = true
 		}
 	}
 
@@ -96,13 +136,68 @@ func (gui *Gui) refreshProjects() error {
 		projectsList = append(projectsList, project)
 	}
 
-	// Add current's folder project if exists
-	if gui.DockerCommand.InDockerComposeProject {
-		projectsList = append(projectsList, &commands.Project{Name: gui.GetProjectName()})
+	if gui.DockerCommand.StartedInDockerComposeProject {
+		currentDirProjectName := path.Base(gui.Config.ProjectDir)
+		if _, exists := projectsMap[currentDirProjectName]; !exists {
+			projectsList = append(projectsList, &commands.Project{
+				Name:            currentDirProjectName,
+				Path:            gui.Config.ProjectDir,
+				IsDockerCompose: true,
+				Status:          "not created",
+			})
+		}
 	}
-	gui.Panels.Projects.SetItems(projectsList)
 
+	for _, project := range projectsMap {
+		if project.RunningCount == 0 {
+			project.Status = "stopped"
+		} else if project.RunningCount == project.ContainerCount {
+			project.Status = "running"
+		} else {
+			project.Status = "mixed"
+		}
+
+		project.ServiceCount = len(servicesPerProject[project.Name])
+	}
+
+	gui.Panels.Projects.SetItems(projectsList)
 	return gui.Panels.Projects.RerenderList()
+}
+
+func (gui *Gui) handleProjectSelect(g *gocui.Gui, v *gocui.View) error {
+	project, err := gui.Panels.Projects.GetSelectedItem()
+	if err != nil {
+		gui.Log.Error(err)
+		return nil
+	}
+
+	gui.Log.Info("Selected project: " + project.Name)
+
+	gui.State.Project = project
+
+	gui.DockerCommand.CurrentDockerComposeProject = project.Name
+	gui.DockerCommand.InDockerComposeProject = project.IsDockerCompose
+
+	if err := gui.refreshContainersAndServices(); err != nil {
+		gui.Log.Error(err)
+		return err
+	}
+
+	if err := gui.Panels.Projects.RerenderList(); err != nil {
+		return err
+	}
+	if err := gui.Panels.Services.RerenderList(); err != nil {
+		return err
+	}
+	if err := gui.Panels.Containers.RerenderList(); err != nil {
+		return err
+	}
+
+	if err := gui.Panels.Projects.HandleSelect(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (gui *Gui) GetProjectName() string {
@@ -167,9 +262,36 @@ func (gui *Gui) renderAllLogs(_project *commands.Project) tasks.TaskFunc {
 	})
 }
 
-func (gui *Gui) renderDockerComposeConfig(_project *commands.Project) tasks.TaskFunc {
+func (gui *Gui) renderDockerComposeConfig(project *commands.Project) tasks.TaskFunc {
 	return gui.NewSimpleRenderStringTask(func() string {
-		return utils.ColoredYamlString(gui.DockerCommand.DockerComposeConfig())
+		output, err := gui.DockerCommand.DockerComposeConfigForProjectWithError(project.Path)
+
+		if err != nil {
+			if commands.IsDockerComposeFileNotFoundError(err) {
+				return fmt.Sprintf("%s\n\n%s\n%s",
+					utils.ColoredString("No docker-compose file found", color.FgYellow),
+					utils.ColoredString("Project: ", color.FgWhite)+project.Name,
+					utils.ColoredString("Path: ", color.FgWhite)+project.Path)
+			}
+
+			if commands.IsDockerComposeYAMLError(err) {
+				return fmt.Sprintf("%s\n\n%s",
+					utils.ColoredString("YAML parsing error in compose file", color.FgRed),
+					err.Error())
+			}
+
+			if commands.IsDockerComposeValidationError(err) {
+				return fmt.Sprintf("%s\n\n%s",
+					utils.ColoredString("Compose file validation failed", color.FgRed),
+					err.Error())
+			}
+
+			return fmt.Sprintf("%s\n\n%s",
+				utils.ColoredString("Failed to read docker-compose config", color.FgRed),
+				err.Error())
+		}
+
+		return utils.ColoredYamlString(output)
 	})
 }
 
@@ -212,7 +334,7 @@ func (gui *Gui) handleCreateProjectMenu(g *gocui.Gui, v *gocui.View) error {
 	testMenuItem := &types.MenuItem{
 		LabelColumns: []string{"t", "test"},
 		OnPress: func() error {
-			log.Println("tested")
+			gui.Log.Println("tested")
 			return nil
 		},
 	}

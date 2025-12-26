@@ -127,6 +127,11 @@ func (gui *Gui) createAllViews() error {
 	// when you run a docker container with the -it flags (interactive mode) it adds carriage returns for some reason. This is not docker's fault, it's an os-level default.
 	gui.Views.Main.IgnoreCarriageReturns = true
 
+	gui.Views.ModeTabs.Frame = true
+	gui.Views.ModeTabs.Tabs = []string{"Container", "Ressources"}
+	gui.Views.ModeTabs.TabIndex = int(gui.State.UIMode)
+	gui.Views.ModeTabs.TitlePrefix = "[Tab]"
+
 	gui.Views.Project.Title = gui.Tr.ProjectTitle
 	gui.Views.Project.TitlePrefix = "[1]"
 
