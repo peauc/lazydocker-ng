@@ -184,7 +184,6 @@ func (c *DockerCommand) RefreshContainersAndServices(currentServices []*Service,
 		}
 
 		c.assignContainersToServices(containers, services)
-		// c.assignContainersToProjects(containers)
 	}
 
 	return containers, services, nil
@@ -281,7 +280,7 @@ func (c *DockerCommand) GetServicesFromContainers(containers []*Container, curre
 		}
 
 		service := &Service{
-			Name:          cont.Name,
+			Name:          cont.ServiceName,
 			ID:            cont.ID,
 			OSCommand:     c.OSCommand,
 			Log:           c.Log,
