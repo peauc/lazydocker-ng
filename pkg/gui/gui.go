@@ -128,8 +128,8 @@ const (
 type UIMode int
 
 const (
-	MODE_OPERATION UIMode = iota  // Projects, Services, Containers
-	MODE_MAINTENANCE              // Images, Volumes, Networks
+	MODE_OPERATION   UIMode = iota // Projects, Services, Containers
+	MODE_MAINTENANCE               // Images, Volumes, Networks
 )
 
 func getScreenMode(config *config.AppConfig) WindowMaximisation {

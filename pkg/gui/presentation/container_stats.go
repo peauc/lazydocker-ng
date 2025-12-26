@@ -10,10 +10,10 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/jesseduffield/asciigraph"
+	"github.com/mcuadros/go-lookup"
 	"github.com/peauc/lazydocker-ng/pkg/commands"
 	"github.com/peauc/lazydocker-ng/pkg/config"
 	"github.com/peauc/lazydocker-ng/pkg/utils"
-	"github.com/mcuadros/go-lookup"
 	"github.com/samber/lo"
 )
 
@@ -140,7 +140,7 @@ func getFloat(unk interface{}) (float64, error) {
 			s := sv.String()
 			return strconv.ParseFloat(s, 64)
 		} else {
-			return math.NaN(), fmt.Errorf("Can't convert %v to float64", v.Type())
+			return math.NaN(), fmt.Errorf("can't convert %v to float64", v.Type())
 		}
 	}
 }

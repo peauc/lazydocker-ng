@@ -3,20 +3,21 @@ package gui
 import (
 	"bytes"
 	"context"
-	"github.com/docker/docker/api/types/container"
-	"github.com/peauc/lazydocker-ng/pkg/gui/types"
 	"log"
 	"path"
 	"strings"
 
+	"github.com/docker/docker/api/types/container"
+	"github.com/peauc/lazydocker-ng/pkg/gui/types"
+
 	"github.com/fatih/color"
 	"github.com/jesseduffield/gocui"
+	"github.com/jesseduffield/yaml"
 	"github.com/peauc/lazydocker-ng/pkg/commands"
 	"github.com/peauc/lazydocker-ng/pkg/gui/panels"
 	"github.com/peauc/lazydocker-ng/pkg/gui/presentation"
 	"github.com/peauc/lazydocker-ng/pkg/tasks"
 	"github.com/peauc/lazydocker-ng/pkg/utils"
-	"github.com/jesseduffield/yaml"
 )
 
 // Although at the moment we'll only have one project, in future we could have

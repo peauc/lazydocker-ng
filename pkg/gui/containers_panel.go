@@ -379,7 +379,7 @@ func (gui *Gui) handleContainerStartStop(g *gocui.Gui, v *gocui.View) error {
 		return nil
 	}
 
-	if !(ctr.Container.State == "exited" || ctr.Container.State == "running") {
+	if ctr.Container.State != "exited" && ctr.Container.State != "running" {
 		return gui.createErrorPanel(gui.Tr.CannotStartStop)
 	}
 

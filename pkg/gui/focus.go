@@ -30,8 +30,8 @@ func (gui *Gui) newLineFocused(v *gocui.View) error {
 
 // TODO: move some of this logic into our onFocusLost and onFocus hooks
 func (gui *Gui) switchFocus(newView *gocui.View) error {
-	gui.Mutexes.ViewStackMutex.Lock()
-	defer gui.Mutexes.ViewStackMutex.Unlock()
+	gui.ViewStackMutex.Lock()
+	defer gui.ViewStackMutex.Unlock()
 
 	return gui.switchFocusAux(newView)
 }
@@ -67,8 +67,8 @@ func (gui *Gui) switchFocusAux(newView *gocui.View) error {
 }
 
 func (gui *Gui) returnFocus() error {
-	gui.Mutexes.ViewStackMutex.Lock()
-	defer gui.Mutexes.ViewStackMutex.Unlock()
+	gui.ViewStackMutex.Lock()
+	defer gui.ViewStackMutex.Unlock()
 
 	if len(gui.State.ViewStack) <= 1 {
 		return nil
@@ -84,8 +84,8 @@ func (gui *Gui) returnFocus() error {
 }
 
 func (gui *Gui) removeViewFromStack(view *gocui.View) {
-	gui.Mutexes.ViewStackMutex.Lock()
-	defer gui.Mutexes.ViewStackMutex.Unlock()
+	gui.ViewStackMutex.Lock()
+	defer gui.ViewStackMutex.Unlock()
 
 	gui.State.ViewStack = lo.Filter(gui.State.ViewStack, func(viewName string, _ int) bool {
 		return viewName != view.Name()
@@ -117,8 +117,8 @@ func (gui *Gui) pushView(name string) {
 
 // excludes popups
 func (gui *Gui) currentStaticViewName() string {
-	gui.Mutexes.ViewStackMutex.Lock()
-	defer gui.Mutexes.ViewStackMutex.Unlock()
+	gui.ViewStackMutex.Lock()
+	defer gui.ViewStackMutex.Unlock()
 
 	for i := len(gui.State.ViewStack) - 1; i >= 0; i-- {
 		if !lo.Contains(gui.popupViewNames(), gui.State.ViewStack[i]) {
@@ -130,8 +130,8 @@ func (gui *Gui) currentStaticViewName() string {
 }
 
 func (gui *Gui) currentSideViewName() string {
-	gui.Mutexes.ViewStackMutex.Lock()
-	defer gui.Mutexes.ViewStackMutex.Unlock()
+	gui.ViewStackMutex.Lock()
+	defer gui.ViewStackMutex.Unlock()
 
 	// we expect that there is a side window somewhere in the view stack, so we will search from top to bottom
 	for idx := range gui.State.ViewStack {

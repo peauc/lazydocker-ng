@@ -183,7 +183,7 @@ func (c *DockerCommand) RefreshContainersAndServices(currentServices []*Service,
 		}
 
 		c.assignContainersToServices(containers, services)
-		//c.assignContainersToProjects(containers)
+		// c.assignContainersToProjects(containers)
 	}
 
 	return containers, services, nil
@@ -268,7 +268,7 @@ func (c *DockerCommand) GetContainers(existingContainers []*Container) ([]*Conta
 
 // GetServicesFromContainers gets services
 func (c *DockerCommand) GetServicesFromContainers(containers []*Container, currentProject *Project) ([]*Service, error) {
-	var services []*Service
+	services := make([]*Service, 0, len(containers))
 
 	if currentProject.Name == "" {
 		return services, nil
@@ -289,9 +289,9 @@ func (c *DockerCommand) GetServicesFromContainers(containers []*Container, curre
 		services = append(services, service)
 	}
 
-	//TODO: Should be run once every time the project changes
+	// TODO: Should be run once every time the project changes
 	if len(services) == 0 {
-		//If no services are found in running containers fetch services from dockerCompose
+		// If no services are found in running containers fetch services from dockerCompose
 		var err error
 		services, err = c.GetServices()
 		if err != nil {

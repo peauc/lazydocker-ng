@@ -28,7 +28,7 @@ import (
 // currently we are also stripping \r's which may have adverse effects for
 // windows users (but no issues have been raised yet)
 func SplitLines(multilineString string) []string {
-	multilineString = strings.Replace(multilineString, "\r", "", -1)
+	multilineString = strings.ReplaceAll(multilineString, "\r", "")
 	if multilineString == "" || multilineString == "\n" {
 		return make([]string, 0)
 	}
@@ -113,8 +113,8 @@ func ColoredStringDirect(str string, colour *color.Color) string {
 
 // NormalizeLinefeeds - Removes all Windows and Mac style line feeds
 func NormalizeLinefeeds(str string) string {
-	str = strings.Replace(str, "\r\n", "\n", -1)
-	str = strings.Replace(str, "\r", "", -1)
+	str = strings.ReplaceAll(str, "\r\n", "\n")
+	str = strings.ReplaceAll(str, "\r", "")
 	return str
 }
 
@@ -130,7 +130,7 @@ func Loader() string {
 // ResolvePlaceholderString populates a template with values
 func ResolvePlaceholderString(str string, arguments map[string]string) string {
 	for key, value := range arguments {
-		str = strings.Replace(str, "{{"+key+"}}", value, -1)
+		str = strings.ReplaceAll(str, "{{"+key+"}}", value)
 	}
 	return str
 }
@@ -224,8 +224,8 @@ func FormatDecimalBytes(b int) string {
 	n := float64(b)
 	units := []string{"B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"}
 	for _, unit := range units {
-		if n > math.Pow(10, 3) {
-			n /= math.Pow(10, 3)
+		if n > 1000 {
+			n /= 1000
 		} else {
 			val := fmt.Sprintf("%.2f%s", n, unit)
 			if val == "0.00B" {

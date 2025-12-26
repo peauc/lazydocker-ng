@@ -92,6 +92,6 @@ func germanSet() TranslationSet {
 		StopService:                 "Bist du dir sicher, dass du den Dienst dieses Containers anhalten möchtest?",
 		StopContainer:               "Bist du dir sicher, dass du den Container anhalten möchtest?",
 		PressEnterToReturn:          "Drücke Eingabe um zu lazydocker zurückzukehren. (Diese Nachfrage kann in Deiner Konfiguration deaktiviert werden, indem du folgenden Wert setzt: `gui.returnImmediately: true`)",
-		DetachFromContainerShortCut: "Um sich vom Container zu trennen, drücken Sie standardmäßig ctrl-p ​​und dann ctrl-q",
+		DetachFromContainerShortCut: "Um sich vom Container zu trennen, drücken Sie standardmäßig ctrl-p und dann ctrl-q",
 	}
 }

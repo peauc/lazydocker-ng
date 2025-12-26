@@ -398,18 +398,6 @@ func (gui *Gui) getLastFocusedPanelForCurrentMode() string {
 	return gui.State.LastFocusedPanel[gui.State.UIMode]
 }
 
-func (gui *Gui) switchToNextMode() {
-	if gui.State.UIMode == MODE_OPERATION {
-		gui.State.UIMode = MODE_MAINTENANCE
-	} else {
-		gui.State.UIMode = MODE_OPERATION
-	}
-}
-
-func (gui *Gui) switchToPreviousMode() {
-	gui.switchToNextMode() // Same as next since only 2 modes
-}
-
 func (gui *Gui) isPanelVisible(viewName string) bool {
 	sideViewNames := gui.sideViewNames()
 	for _, name := range sideViewNames {

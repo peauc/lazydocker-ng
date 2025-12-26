@@ -57,7 +57,7 @@ func getHistoryResponseItemDisplayStrings(layer image.HistoryResponseItem) []str
 		createdBy = utils.ColoredString(split[0], color.FgYellow) + " " + strings.Join(split[1:], " ")
 	}
 
-	createdBy = strings.Replace(createdBy, "\t", " ", -1)
+	createdBy = strings.ReplaceAll(createdBy, "\t", " ")
 
 	size := utils.FormatBinaryBytes(int(layer.Size))
 	sizeColor := color.FgWhite
