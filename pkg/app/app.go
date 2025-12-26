@@ -53,16 +53,17 @@ func NewApp(config *config.AppConfig) (*App, error) {
 	}
 
 	// here is the place to make use of the docker-compose.yml file in the current directory
-	err = app.OSCommand.RunCommand(
-		utils.ApplyTemplate(
-			config.UserConfig.CommandTemplates.CheckDockerComposeConfig,
-			app.DockerCommand.NewCommandObject(commands.CommandObject{}),
-		),
+	checkCmd := utils.ApplyTemplate(
+		config.UserConfig.CommandTemplates.CheckDockerComposeConfig,
+		app.DockerCommand.NewCommandObject(commands.CommandObject{}),
 	)
+	err = app.OSCommand.RunCommand(checkCmd)
 	if err != nil {
 		app.DockerCommand.InDockerComposeProject = false
-		app.Log.Warn(err.Error())
+		app.Log.Warnf("Not in docker compose project (working dir: %s, command: '%s', error: %v)",
+			config.ProjectDir, checkCmd, err)
 	} else {
+		app.Log.Infof("Detected docker compose project in: %s", config.ProjectDir)
 		app.Gui.State.Project = &commands.Project{
 			Name:            app.Gui.GetProjectName(),
 			IsDockerCompose: true,
