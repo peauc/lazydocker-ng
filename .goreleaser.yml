@@ -1,5 +1,5 @@
-# This is an example goreleaser.yaml file with some sane defaults.
 # Make sure to check the documentation at http://goreleaser.com
+# This is an example goreleaser.yaml file with some sane defaults.
 version: 2
 
 # Override detected git repository
@@ -52,7 +52,7 @@ builds:
 
 archives:
   - id: binary
-    builds:
+    ids:
       - binary
     name_template: >-
       {{ .ProjectName }}_
@@ -65,11 +65,12 @@ archives:
       {{- else if eq .Arch "amd64" }}x86_64
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
-    format: tar.gz
+    formats:
+      - tar.gz
     files:
       - none*
   - id: binary-zip
-    builds:
+    ids:
       - binary
     name_template: >-
       {{ .ProjectName }}_
@@ -82,7 +83,8 @@ archives:
       {{- else if eq .Arch "amd64" }}x86_64
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
-    format: zip
+    formats:
+      - zip
     files:
       - none*
 
@@ -100,7 +102,7 @@ changelog:
       - "^test:"
       - "^bump"
 
-brews:
+homebrew_casks:
   - repository:
       owner: peauc
       name: homebrew-lazydocker-ng
@@ -115,7 +117,30 @@ brews:
 
     # Your app's description.
     # Default is empty.
-    description: "A simple terminal UI for docker, written in Go"
+    description: "The continuation of lazydocker the simple terminal UI for docker, written in Go"
+
+# AUR (Arch User Repository) configuration
+aurs:
+  - name: lazydocker-ng-bin
+    homepage: "https://github.com/peauc/lazydocker-ng/"
+    description: "The continuation of lazydocker the simple terminal UI for docker, written in Go"
+    maintainers:
+      - "Clément PÉAU <clement dot peau at gmail dot com>"
+    license: "MIT"
+
+    # SSH private key for AUR commits (set as environment variable)
+    private_key: "{{ .Env.AUR_KEY }}"
+
+    # AUR git repository URL
+    git_url: "ssh://aur@aur.archlinux.org/lazydocker-ng-bin.git"
+
+    # Commit message template
+    commit_msg_template: "Update to {{ .Tag }}"
+
+    # Git author info
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
 #snapcrafts:
 #  - builds:
 #      - snap

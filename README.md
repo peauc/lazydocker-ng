@@ -41,7 +41,8 @@ We only offer a tap. The core package is currently pointing to the original lazy
 **Tap**:
 
 ```sh
-brew install peauc/lazydocker/lazydocker
+brew tap peauc/lazydocker-ng
+brew install peauc/lazydocker-ng/lazydocker-ng
 ```
 
 ### Binary Release (Linux/OSX/Windows)
@@ -70,14 +71,12 @@ Required Go version >= **1.8**, <= **1.17**
 go get github.com/peauc/lazydocker-ng
 ```
 
-#TODO DEPLOY TO AUR
-
 ### Arch Linux AUR
 
-You can install lazydocker using the [AUR](https://aur.archlinux.org/packages/lazydocker) by running:
+You can install lazydocker using the [AUR](https://aur.archlinux.org/packages/lazydocker-ng) by running:
 
 ```sh
-yay -S lazydocker
+paru -S lazydocker-ng
 ```
 
 ### Docker
