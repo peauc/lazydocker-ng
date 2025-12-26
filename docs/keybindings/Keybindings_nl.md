@@ -2,15 +2,31 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
 
 # Lazydocker menu
 
+## Globaal
+
+<pre>
+  <kbd>	</kbd>: Toggle Mode
+  <kbd>+</kbd>: next screen mode (normal/half/fullscreen)
+  <kbd>_</kbd>: prev screen mode
+  <kbd>1</kbd>: focus projects panel
+  <kbd>2</kbd>: focus services panel
+  <kbd>3</kbd>: focus containers panel
+  <kbd>4</kbd>: focus images panel
+  <kbd>5</kbd>: focus volumes panel
+  <kbd>6</kbd>: focus networks panel
+</pre>
+
 ## Project
 
 <pre>
   <kbd>e</kbd>: verander de lazydocker configuratie
+  <kbd>P</kbd>: switch project
   <kbd>o</kbd>: open de lazydocker configuratie
   <kbd>m</kbd>: bekijk logs
   <kbd>enter</kbd>: focus hoofdpaneel
   <kbd>[</kbd>: vorige tab
   <kbd>]</kbd>: volgende tab
+  <kbd>/</kbd>: filter list
 </pre>
 
 ## Containers
@@ -19,7 +35,7 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
   <kbd>d</kbd>: verwijder
   <kbd>e</kbd>: verberg gestopte containers
   <kbd>p</kbd>: pause
-  <kbd>s</kbd>: stop
+  <kbd>s</kbd>: start/stop
   <kbd>r</kbd>: herstart
   <kbd>a</kbd>: verbinden
   <kbd>m</kbd>: bekijk logs
@@ -97,17 +113,4 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
 
 <pre>
   <kbd>esc</kbd>: terug
-</pre>
-
-## Globaal
-
-<pre>
-  <kbd>+</kbd>: next screen mode (normal/half/fullscreen)
-  <kbd>_</kbd>: prev screen mode
-  <kbd>1</kbd>: focus projects panel
-  <kbd>2</kbd>: focus services panel
-  <kbd>3</kbd>: focus containers panel
-  <kbd>4</kbd>: focus images panel
-  <kbd>5</kbd>: focus volumes panel
-  <kbd>6</kbd>: focus networks panel
 </pre>

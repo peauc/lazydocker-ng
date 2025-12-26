@@ -1,27 +1,40 @@
+version: "2"
+run:
+  go: "1.25"
 linters:
   enable:
-    - gofumpt
-    - thelper
-    - goimports
-    - tparallel
-    - wastedassign
-    - unparam
-    - prealloc
-    - unconvert
     - exhaustive
     - makezero
     - nakedret
-    # - goconst # TODO: enable and fix issues
-  fast: false
-
-linters-settings:
-  exhaustive:
-    default-signifies-exhaustive: true
-
-  nakedret:
-    # the gods will judge me but I just don't like naked returns at all
-    max-func-lines: 0
-
-run:
-  go: '1.21'
-  timeout: 10m
+    - prealloc
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - wastedassign
+  settings:
+    exhaustive:
+      default-signifies-exhaustive: true
+    nakedret:
+      max-func-lines: 0
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

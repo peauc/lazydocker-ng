@@ -50,7 +50,7 @@ type TunnelResult struct {
 
 // HandleSSHDockerHost overrides the DOCKER_HOST environment variable
 // to point towards a local unix socket tunneled over SSH to the specified ssh host.
-func (self *SSHHandler) HandleSSHDockerHost(dockerHost string) (TunnelResult, error) {
+func (h *SSHHandler) HandleSSHDockerHost(dockerHost string) (TunnelResult, error) {
 	u, err := url.Parse(dockerHost)
 	if err != nil {
 		// if no or an invalid docker host is specified, continue nominally
@@ -60,7 +60,7 @@ func (self *SSHHandler) HandleSSHDockerHost(dockerHost string) (TunnelResult, er
 	// if the docker host scheme is "ssh", forward the docker socket before creating the client
 	if u.Scheme == "ssh" {
 		ctx := context.Background()
-		tunnel, err := self.createDockerHostTunnel(ctx, u.String())
+		tunnel, err := h.createDockerHostTunnel(ctx, u.String())
 		if err != nil {
 			return TunnelResult{Closer: noopCloser{}}, fmt.Errorf("tunnel ssh docker host: %w", err)
 		}
@@ -90,14 +90,14 @@ func (t *tunneledDockerHost) Close() error {
 	return t.oSCommand.Kill(t.cmd)
 }
 
-func (self *SSHHandler) createDockerHostTunnel(ctx context.Context, remoteHost string) (*tunneledDockerHost, error) {
-	socketDir, err := self.tempDir("/tmp", "lazydocker-ssh-tunnel-")
+func (h *SSHHandler) createDockerHostTunnel(ctx context.Context, remoteHost string) (*tunneledDockerHost, error) {
+	socketDir, err := h.tempDir("/tmp", "lazydocker-ssh-tunnel-")
 	if err != nil {
 		return nil, fmt.Errorf("create ssh tunnel tmp file: %w", err)
 	}
 	localSocket := path.Join(socketDir, "dockerhost.sock")
 
-	cmd, err := self.tunnelSSH(ctx, remoteHost, localSocket)
+	cmd, err := h.tunnelSSH(ctx, remoteHost, localSocket)
 	if err != nil {
 		return nil, fmt.Errorf("tunnel docker host over ssh: %w", err)
 	}
@@ -108,7 +108,7 @@ func (self *SSHHandler) createDockerHostTunnel(ctx context.Context, remoteHost s
 	ctx, cancel := context.WithTimeout(ctx, socketTunnelTimeout)
 	defer cancel()
 
-	err = self.retrySocketDial(ctx, localSocket)
+	err = h.retrySocketDial(ctx, localSocket)
 	if err != nil {
 		return nil, fmt.Errorf("ssh tunneled socket never became available: %w", err)
 	}
@@ -118,13 +118,13 @@ func (self *SSHHandler) createDockerHostTunnel(ctx context.Context, remoteHost s
 	return &tunneledDockerHost{
 		socketPath: newDockerHostURL.String(),
 		cmd:        cmd,
-		oSCommand:  self.oSCommand,
+		oSCommand:  h.oSCommand,
 	}, nil
 }
 
 // Attempt to dial the socket until it becomes available.
 // The retry loop will continue until the parent context is canceled.
-func (self *SSHHandler) retrySocketDial(ctx context.Context, socketPath string) error {
+func (h *SSHHandler) retrySocketDial(ctx context.Context, socketPath string) error {
 	t := time.NewTicker(1 * time.Second)
 	defer t.Stop()
 
@@ -135,7 +135,7 @@ func (self *SSHHandler) retrySocketDial(ctx context.Context, socketPath string) 
 		case <-t.C:
 		}
 		// attempt to dial the socket, exit on success
-		err := self.tryDial(ctx, socketPath)
+		err := h.tryDial(ctx, socketPath)
 		if err != nil {
 			continue
 		}
@@ -144,8 +144,8 @@ func (self *SSHHandler) retrySocketDial(ctx context.Context, socketPath string) 
 }
 
 // Try to dial the specified unix socket, immediately close the connection if successfully created.
-func (self *SSHHandler) tryDial(ctx context.Context, socketPath string) error {
-	conn, err := self.dialContext(ctx, "unix", socketPath)
+func (h *SSHHandler) tryDial(ctx context.Context, socketPath string) error {
+	conn, err := h.dialContext(ctx, "unix", socketPath)
 	if err != nil {
 		return err
 	}
@@ -153,10 +153,10 @@ func (self *SSHHandler) tryDial(ctx context.Context, socketPath string) error {
 	return nil
 }
 
-func (self *SSHHandler) tunnelSSH(ctx context.Context, host, localSocket string) (*exec.Cmd, error) {
+func (h *SSHHandler) tunnelSSH(ctx context.Context, host, localSocket string) (*exec.Cmd, error) {
 	cmd := exec.CommandContext(ctx, "ssh", "-L", localSocket+":/var/run/docker.sock", host, "-N")
-	self.oSCommand.PrepareForChildren(cmd)
-	err := self.startCmd(cmd)
+	h.oSCommand.PrepareForChildren(cmd)
+	err := h.startCmd(cmd)
 	if err != nil {
 		return nil, err
 	}

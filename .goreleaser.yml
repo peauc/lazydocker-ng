@@ -1,5 +1,19 @@
-# This is an example goreleaser.yaml file with some sane defaults.
 # Make sure to check the documentation at http://goreleaser.com
+# This is an example goreleaser.yaml file with some sane defaults.
+version: 2
+
+# Override detected git repository
+git:
+  tag_sort: -version:refname
+
+github_urls:
+  download: https://github.com
+
+release:
+  github:
+    owner: peauc
+    name: lazydocker-ng
+
 env:
   - CGO_ENABLED=0
   - GOFLAGS=-mod=vendor
@@ -20,6 +34,9 @@ builds:
     goarm:
       - 6
       - 7
+    ignore:
+      - goos: windows
+        goarch: arm
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.buildSource=binaryRelease
   - id: snap
@@ -34,23 +51,48 @@ builds:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.buildSource=snap
 
 archives:
-  - builds:
+  - id: binary
+    ids:
       - binary
-    replacements:
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      386: x86
-      amd64: x86_64
-    format_overrides:
-      - goos: windows
-        format: zip
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- if eq .Os "darwin" }}Darwin
+      {{- else if eq .Os "linux" }}Linux
+      {{- else if eq .Os "windows" }}Windows
+      {{- else }}{{ .Os }}{{ end }}_
+      {{- if eq .Arch "386" }}x86
+      {{- else if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    formats:
+      - tar.gz
+    files:
+      - none*
+  - id: binary-zip
+    ids:
+      - binary
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- if eq .Os "darwin" }}Darwin
+      {{- else if eq .Os "linux" }}Linux
+      {{- else if eq .Os "windows" }}Windows
+      {{- else }}{{ .Os }}{{ end }}_
+      {{- if eq .Arch "386" }}x86
+      {{- else if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    formats:
+      - zip
+    files:
+      - none*
 
 checksum:
   name_template: "checksums.txt"
 
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  version_template: "{{ .Tag }}-next"
 
 changelog:
   sort: asc
@@ -60,18 +102,45 @@ changelog:
       - "^test:"
       - "^bump"
 
-brews:
-  - tap:
-      owner: jesseduffield
-      name: homebrew-lazydocker
+homebrew_casks:
+  - repository:
+      owner: peauc
+      name: homebrew-lazydocker-ng
+
+    # Only include tar.gz archives for homebrew
+    ids:
+      - binary
 
     # Your app's homepage.
     # Default is empty.
-    homepage: "https://github.com/jesseduffield/lazydocker/"
+    homepage: "https://github.com/peauc/lazydocker-ng/"
 
     # Your app's description.
     # Default is empty.
-    description: "A simple terminal UI for docker, written in Go"
+    description: "The continuation of lazydocker the simple terminal UI for docker, written in Go"
+
+# AUR (Arch User Repository) configuration
+aurs:
+  - name: lazydocker-ng-bin
+    homepage: "https://github.com/peauc/lazydocker-ng/"
+    description: "The continuation of lazydocker the simple terminal UI for docker, written in Go"
+    maintainers:
+      - "Clément PÉAU <clement dot peau at gmail dot com>"
+    license: "MIT"
+
+    # SSH private key for AUR commits (set as environment variable)
+    private_key: "{{ .Env.AUR_KEY }}"
+
+    # AUR git repository URL
+    git_url: "ssh://aur@aur.archlinux.org/lazydocker-ng-bin.git"
+
+    # Commit message template
+    commit_msg_template: "Update to {{ .Tag }}"
+
+    # Git author info
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
 #snapcrafts:
 #  - builds:
 #      - snap

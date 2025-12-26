@@ -1,4 +1,4 @@
-// Copyright 2023 The TCell Authors
+// Copyright 2025 The TCell Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use file except in compliance with the License.
@@ -19,11 +19,12 @@ package tcell
 
 import (
 	"errors"
-	"github.com/gdamore/tcell/v2/terminfo"
-	"strings"
+	"fmt"
 	"sync"
 	"syscall/js"
 	"unicode/utf8"
+
+	"github.com/gdamore/tcell/v2/terminfo"
 )
 
 func NewTerminfoScreen() (Screen, error) {
@@ -66,6 +67,9 @@ func (t *wScreen) Init() error {
 	t.Unlock()
 
 	js.Global().Set("onKeyEvent", js.FuncOf(t.onKeyEvent))
+	js.Global().Set("onMouseClick", js.FuncOf(t.unset))
+	js.Global().Set("onMouseMove", js.FuncOf(t.unset))
+	js.Global().Set("onFocus", js.FuncOf(t.unset))
 
 	return nil
 }
@@ -116,7 +120,7 @@ func paletteColor(c Color) int32 {
 }
 
 func (t *wScreen) drawCell(x, y int) int {
-	mainc, combc, style, width := t.cells.GetContent(x, y)
+	str, style, width := t.cells.Get(x, y)
 
 	if !t.cells.Dirty(x, y) {
 		return width
@@ -133,14 +137,13 @@ func (t *wScreen) drawCell(x, y int) int {
 	if bg == -1 {
 		bg = 0x000000
 	}
-
-	var combcarr []interface{} = make([]interface{}, len(combc))
-	for i, c := range combc {
-		combcarr[i] = c
+	us, uc := style.ulStyle, paletteColor(style.ulColor)
+	if uc == -1 {
+		uc = 0x000000
 	}
 
 	t.cells.SetDirty(x, y, false)
-	js.Global().Call("drawCell", x, y, mainc, combcarr, fg, bg, int(style.attrs))
+	js.Global().Call("drawCell", x, y, str, fg, bg, int(style.attrs), int(us), int(uc))
 
 	return width
 }
@@ -151,9 +154,12 @@ func (t *wScreen) ShowCursor(x, y int) {
 	t.Unlock()
 }
 
-func (t *wScreen) SetCursorStyle(cs CursorStyle) {
+func (t *wScreen) SetCursor(cs CursorStyle, cc Color) {
+	if !cc.Valid() {
+		cc = ColorLightGray
+	}
 	t.Lock()
-	js.Global().Call("setCursorStyle", curStyleClasses[cs])
+	js.Global().Call("setCursorStyle", curStyleClasses[cs], fmt.Sprintf("#%06x", cc.Hex()))
 	t.Unlock()
 }
 
@@ -260,6 +266,12 @@ func (t *wScreen) DisableFocus() {
 	t.Unlock()
 }
 
+func (s *wScreen) GetClipboard() {
+}
+
+func (s *wScreen) SetClipboard(_ []byte) {
+}
+
 func (t *wScreen) Size() (int, int) {
 	t.Lock()
 	w, h := t.w, t.h
@@ -357,14 +369,6 @@ func (t *wScreen) onKeyEvent(this js.Value, args []js.Value) interface{} {
 
 	if args[4].Bool() { // mod meta
 		mod |= ModMeta
-	}
-
-	// check for special case of Ctrl + key
-	if mod == ModCtrl {
-		if k, ok := WebKeyNames["Ctrl-"+strings.ToLower(key)]; ok {
-			t.postEvent(NewEventKey(k, 0, mod))
-			return nil
-		}
 	}
 
 	// next try function keys
@@ -511,6 +515,10 @@ func (t *wScreen) StopQ() <-chan struct{} {
 	return t.quit
 }
 
+func (t *wScreen) SetTitle(title string) {
+	js.Global().Call("setTitle", title)
+}
+
 // WebKeyNames maps string names reported from HTML
 // (KeyboardEvent.key) to tcell accepted keys.
 var WebKeyNames = map[string]Key{
@@ -604,34 +612,6 @@ var WebKeyNames = map[string]Key{
 	"F62":        KeyF62,
 	"F63":        KeyF63,
 	"F64":        KeyF64,
-	"Ctrl-a":     KeyCtrlA,          // not reported by HTML- need to do special check
-	"Ctrl-b":     KeyCtrlB,          // not reported by HTML- need to do special check
-	"Ctrl-c":     KeyCtrlC,          // not reported by HTML- need to do special check
-	"Ctrl-d":     KeyCtrlD,          // not reported by HTML- need to do special check
-	"Ctrl-e":     KeyCtrlE,          // not reported by HTML- need to do special check
-	"Ctrl-f":     KeyCtrlF,          // not reported by HTML- need to do special check
-	"Ctrl-g":     KeyCtrlG,          // not reported by HTML- need to do special check
-	"Ctrl-j":     KeyCtrlJ,          // not reported by HTML- need to do special check
-	"Ctrl-k":     KeyCtrlK,          // not reported by HTML- need to do special check
-	"Ctrl-l":     KeyCtrlL,          // not reported by HTML- need to do special check
-	"Ctrl-n":     KeyCtrlN,          // not reported by HTML- need to do special check
-	"Ctrl-o":     KeyCtrlO,          // not reported by HTML- need to do special check
-	"Ctrl-p":     KeyCtrlP,          // not reported by HTML- need to do special check
-	"Ctrl-q":     KeyCtrlQ,          // not reported by HTML- need to do special check
-	"Ctrl-r":     KeyCtrlR,          // not reported by HTML- need to do special check
-	"Ctrl-s":     KeyCtrlS,          // not reported by HTML- need to do special check
-	"Ctrl-t":     KeyCtrlT,          // not reported by HTML- need to do special check
-	"Ctrl-u":     KeyCtrlU,          // not reported by HTML- need to do special check
-	"Ctrl-v":     KeyCtrlV,          // not reported by HTML- need to do special check
-	"Ctrl-w":     KeyCtrlW,          // not reported by HTML- need to do special check
-	"Ctrl-x":     KeyCtrlX,          // not reported by HTML- need to do special check
-	"Ctrl-y":     KeyCtrlY,          // not reported by HTML- need to do special check
-	"Ctrl-z":     KeyCtrlZ,          // not reported by HTML- need to do special check
-	"Ctrl- ":     KeyCtrlSpace,      // not reported by HTML- need to do special check
-	"Ctrl-_":     KeyCtrlUnderscore, // not reported by HTML- need to do special check
-	"Ctrl-]":     KeyCtrlRightSq,    // not reported by HTML- need to do special check
-	"Ctrl-\\":    KeyCtrlBackslash,  // not reported by HTML- need to do special check
-	"Ctrl-^":     KeyCtrlCarat,      // not reported by HTML- need to do special check
 }
 
 var curStyleClasses = map[CursorStyle]string{

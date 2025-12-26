@@ -6,17 +6,19 @@ package gocui
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/go-errors/errors"
 )
 
 type escapeInterpreter struct {
 	state                  escapeState
-	curch                  rune
+	curch                  string
 	csiParam               []string
 	curFgColor, curBgColor Attribute
 	mode                   OutputMode
 	instruction            instruction
+	hyperlink              strings.Builder
 }
 
 type (
@@ -40,7 +42,11 @@ const (
 	stateCSI
 	stateParams
 	stateOSC
-	stateOSCEscape
+	stateOSCWaitForParams
+	stateOSCParams
+	stateOSCHyperlink
+	stateOSCEndEscape
+	stateOSCSkipUnknown
 
 	bold      fontEffect = 1
 	faint     fontEffect = 2
@@ -60,24 +66,26 @@ var (
 	errNotCSI        = errors.New("Not a CSI escape sequence")
 	errCSIParseError = errors.New("CSI escape sequence parsing error")
 	errCSITooLong    = errors.New("CSI escape sequence is too long")
+	errOSCParseError = errors.New("OSC escape sequence parsing error")
 )
 
-// runes in case of error will output the non-parsed runes as a string.
-func (ei *escapeInterpreter) runes() []rune {
+// characters in case of error will output the non-parsed characters as a string.
+func (ei *escapeInterpreter) characters() []string {
 	switch ei.state {
 	case stateNone:
-		return []rune{0x1b}
+		return []string{"\x1b"}
 	case stateEscape:
-		return []rune{0x1b, ei.curch}
+		return []string{"\x1b", ei.curch}
 	case stateCSI:
-		return []rune{0x1b, '[', ei.curch}
+		return []string{"\x1b", "[", ei.curch}
 	case stateParams:
-		ret := []rune{0x1b, '['}
+		ret := []string{"\x1b", "["}
 		for _, s := range ei.csiParam {
-			ret = append(ret, []rune(s)...)
-			ret = append(ret, ';')
+			ret = append(ret, s)
+			ret = append(ret, ";")
 		}
 		return append(ret, ei.curch)
+	default:
 	}
 	return nil
 }
@@ -107,10 +115,10 @@ func (ei *escapeInterpreter) instructionRead() {
 	ei.instruction = noInstruction{}
 }
 
-// parseOne parses a rune. If isEscape is true, it means that the rune is part
-// of an escape sequence, and as such should not be printed verbatim. Otherwise,
-// it's not an escape sequence.
-func (ei *escapeInterpreter) parseOne(ch rune) (isEscape bool, err error) {
+// parseOne parses a character (grapheme cluster). If isEscape is true, it means that the character
+// is part of an escape sequence, and as such should not be printed verbatim. Otherwise, it's not an
+// escape sequence.
+func (ei *escapeInterpreter) parseOne(ch []byte) (isEscape bool, err error) {
 	// Sanity checks
 	if len(ei.csiParam) > 20 {
 		return false, errCSITooLong
@@ -119,21 +127,21 @@ func (ei *escapeInterpreter) parseOne(ch rune) (isEscape bool, err error) {
 		return false, errCSITooLong
 	}
 
-	ei.curch = ch
+	ei.curch = string(ch)
 
 	switch ei.state {
 	case stateNone:
-		if ch == 0x1b {
+		if characterEquals(ch, 0x1b) {
 			ei.state = stateEscape
 			return true, nil
 		}
 		return false, nil
 	case stateEscape:
-		switch ch {
-		case '[':
+		switch {
+		case characterEquals(ch, '['):
 			ei.state = stateCSI
 			return true, nil
-		case ']':
+		case characterEquals(ch, ']'):
 			ei.state = stateOSC
 			return true, nil
 		default:
@@ -141,11 +149,11 @@ func (ei *escapeInterpreter) parseOne(ch rune) (isEscape bool, err error) {
 		}
 	case stateCSI:
 		switch {
-		case ch >= '0' && ch <= '9':
+		case len(ch) == 1 && ch[0] >= '0' && ch[0] <= '9':
 			ei.csiParam = append(ei.csiParam, "")
-		case ch == 'm':
+		case characterEquals(ch, 'm'):
 			ei.csiParam = append(ei.csiParam, "0")
-		case ch == 'K':
+		case characterEquals(ch, 'K'):
 			// fall through
 		default:
 			return false, errCSIParseError
@@ -154,13 +162,13 @@ func (ei *escapeInterpreter) parseOne(ch rune) (isEscape bool, err error) {
 		fallthrough
 	case stateParams:
 		switch {
-		case ch >= '0' && ch <= '9':
+		case len(ch) == 1 && ch[0] >= '0' && ch[0] <= '9':
 			ei.csiParam[len(ei.csiParam)-1] += string(ch)
 			return true, nil
-		case ch == ';':
+		case characterEquals(ch, ';'):
 			ei.csiParam = append(ei.csiParam, "")
 			return true, nil
-		case ch == 'm':
+		case characterEquals(ch, 'm'):
 			if err := ei.outputCSI(); err != nil {
 				return false, errCSIParseError
 			}
@@ -168,7 +176,7 @@ func (ei *escapeInterpreter) parseOne(ch rune) (isEscape bool, err error) {
 			ei.state = stateNone
 			ei.csiParam = nil
 			return true, nil
-		case ch == 'K':
+		case characterEquals(ch, 'K'):
 			p := 0
 			if len(ei.csiParam) != 0 && ei.csiParam[0] != "" {
 				p, err = strconv.Atoi(ei.csiParam[0])
@@ -191,14 +199,46 @@ func (ei *escapeInterpreter) parseOne(ch rune) (isEscape bool, err error) {
 			return false, errCSIParseError
 		}
 	case stateOSC:
-		switch ch {
-		case 0x1b:
-			ei.state = stateOSCEscape
+		if characterEquals(ch, '8') {
+			ei.state = stateOSCWaitForParams
+			ei.hyperlink.Reset()
 			return true, nil
 		}
+
+		ei.state = stateOSCSkipUnknown
 		return true, nil
-	case stateOSCEscape:
+	case stateOSCWaitForParams:
+		if !characterEquals(ch, ';') {
+			return true, errOSCParseError
+		}
+
+		ei.state = stateOSCParams
+		return true, nil
+	case stateOSCParams:
+		if characterEquals(ch, ';') {
+			ei.state = stateOSCHyperlink
+		}
+		return true, nil
+	case stateOSCHyperlink:
+		switch {
+		case characterEquals(ch, 0x07):
+			ei.state = stateNone
+		case characterEquals(ch, 0x1b):
+			ei.state = stateOSCEndEscape
+		default:
+			ei.hyperlink.Write(ch)
+		}
+		return true, nil
+	case stateOSCEndEscape:
 		ei.state = stateNone
+		return true, nil
+	case stateOSCSkipUnknown:
+		switch {
+		case characterEquals(ch, 0x07):
+			ei.state = stateNone
+		case characterEquals(ch, 0x1b):
+			ei.state = stateOSCEndEscape
+		}
 		return true, nil
 	}
 	return false, nil
@@ -267,58 +307,48 @@ func (ei *escapeInterpreter) outputCSI() error {
 
 func (ei *escapeInterpreter) csiColor(param []string) (color Attribute, skip int, err error) {
 	if len(param) < 2 {
-		err = errCSIParseError
-		return
+		return 0, 0, errCSIParseError
 	}
 
 	switch param[1] {
 	case "2":
 		// 24-bit color
 		if ei.mode < OutputTrue {
-			err = errCSIParseError
-			return
+			return 0, 0, errCSIParseError
 		}
 		if len(param) < 5 {
-			err = errCSIParseError
-			return
+			return 0, 0, errCSIParseError
 		}
 		var red, green, blue int
 		red, err = strconv.Atoi(param[2])
 		if err != nil {
-			err = errCSIParseError
-			return
+			return 0, 0, errCSIParseError
 		}
 		green, err = strconv.Atoi(param[3])
 		if err != nil {
-			err = errCSIParseError
-			return
+			return 0, 0, errCSIParseError
 		}
 		blue, err = strconv.Atoi(param[4])
 		if err != nil {
-			err = errCSIParseError
-			return
+			return 0, 0, errCSIParseError
 		}
 		return NewRGBColor(int32(red), int32(green), int32(blue)), 5, nil
 	case "5":
 		// 8-bit color
 		if ei.mode < Output256 {
-			err = errCSIParseError
-			return
+			return 0, 0, errCSIParseError
 		}
 		if len(param) < 3 {
-			err = errCSIParseError
-			return
+			return 0, 0, errCSIParseError
 		}
 		var hex int
 		hex, err = strconv.Atoi(param[2])
 		if err != nil {
-			err = errCSIParseError
-			return
+			return 0, 0, errCSIParseError
 		}
 		return Get256Color(int32(hex)), 3, nil
 	default:
-		err = errCSIParseError
-		return
+		return 0, 0, errCSIParseError
 	}
 }
 

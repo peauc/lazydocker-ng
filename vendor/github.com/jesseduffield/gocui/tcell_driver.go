@@ -6,7 +6,6 @@ package gocui
 
 import (
 	"github.com/gdamore/tcell/v2"
-	"github.com/mattn/go-runewidth"
 )
 
 // We probably don't want this being a global variable for YOLO for now
@@ -54,7 +53,6 @@ var runeReplacements = map[rune]string{
 
 // tcellInit initializes tcell screen for use.
 func (g *Gui) tcellInit(runeReplacements map[rune]string) error {
-	runewidth.DefaultCondition.EastAsianWidth = false
 	tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
 
 	if s, e := tcell.NewScreen(); e != nil {
@@ -97,10 +95,10 @@ func (g *Gui) tcellInitSimulation(width int, height int) error {
 }
 
 // tcellSetCell sets the character cell at a given location to the given
-// content (rune) and attributes using provided OutputMode
-func tcellSetCell(x, y int, ch rune, fg, bg Attribute, outputMode OutputMode) {
+// content (grapheme cluster) and attributes using provided OutputMode
+func tcellSetCell(x, y int, ch string, fg, bg Attribute, outputMode OutputMode) {
 	st := getTcellStyle(oldStyle{fg: fg, bg: bg, outputMode: outputMode})
-	Screen.SetContent(x, y, ch, nil, st)
+	Screen.Put(x, y, ch, st)
 }
 
 // getTcellStyle creates tcell.Style from Attributes
@@ -155,6 +153,8 @@ type gocuiEventType uint8
 //	The 'MouseX' and 'MouseY' fields are valid if 'Type' is 'eventMouse'.
 //	The 'Width' and 'Height' fields are valid if 'Type' is 'eventResize'.
 //	The 'Focused' field is valid if 'Type' is 'eventFocus'.
+//	The 'Start' field is valid if 'Type' is 'eventPaste'. It is true for the
+//	  beginning of a paste operation, false for the end.
 //	The 'Err' field is valid if 'Type' is 'eventError'.
 type GocuiEvent struct {
 	Type    gocuiEventType
@@ -167,6 +167,7 @@ type GocuiEvent struct {
 	MouseX  int
 	MouseY  int
 	Focused bool
+	Start   bool
 	N       int
 }
 
@@ -176,7 +177,9 @@ const (
 	eventKey
 	eventResize
 	eventMouse
+	eventMouseMove // only used when no button is down, otherwise it's eventMouse
 	eventFocus
+	eventPaste
 	eventInterrupt
 	eventError
 	eventRaw
@@ -363,6 +366,7 @@ func (g *Gui) pollEvent() GocuiEvent {
 				mouseKey = MouseRight
 			case tcell.ButtonMiddle:
 				mouseKey = MouseMiddle
+			default:
 			}
 		}
 
@@ -374,17 +378,23 @@ func (g *Gui) pollEvent() GocuiEvent {
 					dragState = NOT_DRAGGING
 				case tcell.ButtonSecondary:
 				case tcell.ButtonMiddle:
+				default:
 				}
 				mouseMod = Modifier(lastMouseMod)
 				lastMouseMod = tcell.ModNone
 				lastMouseKey = tcell.ButtonNone
 			}
+		default:
 		}
 
 		if !wheeling {
 			switch dragState {
 			case NOT_DRAGGING:
-				return GocuiEvent{Type: eventNone}
+				return GocuiEvent{
+					Type:   eventMouseMove,
+					MouseX: x,
+					MouseY: y,
+				}
 			// if we haven't released the left mouse button and we've moved the cursor then we're dragging
 			case MAYBE_DRAGGING:
 				if x != lastX || y != lastY {
@@ -408,6 +418,11 @@ func (g *Gui) pollEvent() GocuiEvent {
 		return GocuiEvent{
 			Type:    eventFocus,
 			Focused: tev.Focused,
+		}
+	case *tcell.EventPaste:
+		return GocuiEvent{
+			Type:  eventPaste,
+			Start: tev.Start(),
 		}
 	default:
 		return GocuiEvent{Type: eventNone}

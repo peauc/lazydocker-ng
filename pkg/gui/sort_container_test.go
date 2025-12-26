@@ -4,7 +4,7 @@ import (
 	"sort"
 	"testing"
 
-	dockerTypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/peauc/lazydocker-ng/pkg/commands"
 	"github.com/stretchr/testify/assert"
 )

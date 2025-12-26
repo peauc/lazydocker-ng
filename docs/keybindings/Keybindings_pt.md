@@ -2,15 +2,31 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
 
 # Lazydocker menu
 
+## Global
+
+<pre>
+  <kbd>	</kbd>: Toggle Mode
+  <kbd>+</kbd>: modo de tela seguinte (normal/meia/tela cheia)
+  <kbd>_</kbd>: modo de tela anterior
+  <kbd>1</kbd>: focus projects panel
+  <kbd>2</kbd>: focus services panel
+  <kbd>3</kbd>: focus containers panel
+  <kbd>4</kbd>: focus images panel
+  <kbd>5</kbd>: focus volumes panel
+  <kbd>6</kbd>: focus networks panel
+</pre>
+
 ## Projeto
 
 <pre>
   <kbd>e</kbd>: editar configuração do lazydocker
+  <kbd>P</kbd>: switch project
   <kbd>o</kbd>: abrir configuração do lazydocker
   <kbd>m</kbd>: ver logs
   <kbd>enter</kbd>: focar no painel principal
   <kbd>[</kbd>: aba anterior
   <kbd>]</kbd>: próxima aba
+  <kbd>/</kbd>: filtrar lista
 </pre>
 
 ## Contêineres
@@ -19,7 +35,7 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
   <kbd>d</kbd>: remover
   <kbd>e</kbd>: ocultar/mostrar contêineres parados
   <kbd>p</kbd>: pausar
-  <kbd>s</kbd>: parar
+  <kbd>s</kbd>: start/stop
   <kbd>r</kbd>: reiniciar
   <kbd>a</kbd>: anexar
   <kbd>m</kbd>: ver logs
@@ -97,17 +113,4 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
 
 <pre>
   <kbd>esc</kbd>: retornar
-</pre>
-
-## Global
-
-<pre>
-  <kbd>+</kbd>: modo de tela seguinte (normal/meia/tela cheia)
-  <kbd>_</kbd>: modo de tela anterior
-  <kbd>1</kbd>: focus projects panel
-  <kbd>2</kbd>: focus services panel
-  <kbd>3</kbd>: focus containers panel
-  <kbd>4</kbd>: focus images panel
-  <kbd>5</kbd>: focus volumes panel
-  <kbd>6</kbd>: focus networks panel
 </pre>

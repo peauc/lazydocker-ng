@@ -1,4 +1,4 @@
-// Copyright 2023 The TCell Authors
+// Copyright 2025 The TCell Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use file except in compliance with the License.
@@ -35,17 +35,37 @@ type Screen interface {
 	// is called (or Sync).
 	Fill(rune, Style)
 
-	// SetCell is an older API, and will be removed.  Please use
-	// SetContent instead; SetCell is implemented in terms of SetContent.
+	// Put writes the first graphme of the given string with th
+	// given style at the given coordinates. (Only the first grapheme
+	// occupying either one or two cells is stored.) It returns the
+	// remainder of the string, and the width displayed.
+	Put(x int, y int, str string, style Style) (string, int)
+
+	// PutStr writes a string starting at the given position, using the
+	// default style. The content is clipped to the screen dimensions.
+	PutStr(x int, y int, str string)
+
+	// PutStrStyled writes a string starting at the given position, using
+	// the given style. The cont4ent is clipped to the screen dimensions.
+	PutStrStyled(x int, y int, str string, style Style)
+
+	// SetCell is an older API, and will be removed.
+	//jj
+	// Deprecated: Please use Put instead.
 	SetCell(x int, y int, style Style, ch ...rune)
 
-	// GetContent returns the contents at the given location.  If the
+	// Get the contents at the given location.  If the
 	// coordinates are out of range, then the values will be 0, nil,
 	// StyleDefault.  Note that the contents returned are logical contents
 	// and may not actually be what is displayed, but rather are what will
 	// be displayed if Show() or Sync() is called.  The width is the width
 	// in screen cells; most often this will be 1, but some East Asian
 	// characters and emoji require two cells.
+	Get(x, y int) (str string, style Style, width int)
+
+	// GetContent is the old way to get cell contents.
+	//
+	// Deprecated: Use Get() instead.
 	GetContent(x, y int) (primary rune, combining []rune, style Style, width int)
 
 	// SetContent sets the contents of the given cell location.  If
@@ -79,8 +99,9 @@ type Screen interface {
 
 	// SetCursorStyle is used to set the cursor style.  If the style
 	// is not supported (or cursor styles are not supported at all),
-	// then this will have no effect.
-	SetCursorStyle(CursorStyle)
+	// then this will have no effect.  Color will be changed if supplied,
+	// and the terminal supports doing so.
+	SetCursorStyle(CursorStyle, ...Color)
 
 	// Size returns the screen size as width, height.  This changes in
 	// response to a call to Clear or Flush.
@@ -220,6 +241,9 @@ type Screen interface {
 	// fallbacks are registered, this will return true.  This will
 	// also return true if the terminal can replace the glyph with
 	// one that is visually indistinguishable from the one requested.
+	//
+	// Deprecated: This is not a particularly useful or reliable function,
+	// due to limitations in fonts, etc.  It will be removed in the future.
 	CanDisplay(r rune, checkFallbacks bool) bool
 
 	// Resize does nothing, since it's generally not possible to
@@ -227,14 +251,13 @@ type Screen interface {
 	// the View interface.
 	Resize(int, int, int, int)
 
-	// HasKey returns true if the keyboard is believed to have the
-	// key.  In some cases a keyboard may have keys with this name
-	// but no support for them, while in others a key may be reported
-	// as supported but not actually be usable (such as some emulators
-	// that hijack certain keys).  Its best not to depend to strictly
-	// on this function, but it can be used for hinting when building
-	// menus, displayed hot-keys, etc.  Note that KeyRune (literal
-	// runes) is always true.
+	// HasKey always returns true.
+	//
+	// Deprecated: This function always returns true.  Applications
+	// cannot reliably detect whether a key is supported or not with
+	// modern terminal emulators. (The intended use here was to help
+	// applications determine whether a given key stroke was supported
+	// by the terminal, but it was never reliable.)
 	HasKey(Key) bool
 
 	// Suspend pauses input and output processing.  It also restores the
@@ -265,15 +288,31 @@ type Screen interface {
 	// Tty returns the underlying Tty. If the screen is not a terminal, the
 	// returned bool will be false
 	Tty() (Tty, bool)
+
+	// SetTitle sets a window title on the screen.
+	// Terminals may be configured to ignore this, or unable to.
+	// Tcell may attempt to save and restore the window title on entry and exit, but
+	// the results may vary.  Use of unicode characters may not be supported.
+	SetTitle(string)
+
+	// SetClipboard is used to post arbitrary data to the system clipboard.
+	// This need not be UTF-8 string data.  It's up to the recipient to decode the
+	// data meaningfully.  Terminals may prevent this for security reasons.
+	SetClipboard([]byte)
+
+	// GetClipboard is used to request the clipboard contents.  It may be ignored.
+	// If the terminal is willing, it will be post the clipboard contents using an
+	// EventPaste with the clipboard content as the Data() field.  Terminals may
+	// prevent this for security reasons.
+	GetClipboard()
 }
 
 // NewScreen returns a default Screen suitable for the user's terminal
 // environment.
 func NewScreen() (Screen, error) {
-	// Windows is happier if we try for a console screen first.
-	if s, _ := NewConsoleScreen(); s != nil {
+	if s, e := NewTerminfoScreen(); s != nil {
 		return s, nil
-	} else if s, e := NewTerminfoScreen(); s != nil {
+	} else if s, _ := NewConsoleScreen(); s != nil {
 		return s, nil
 	} else {
 		return nil, e
@@ -312,7 +351,7 @@ type screenImpl interface {
 	SetStyle(style Style)
 	ShowCursor(x int, y int)
 	HideCursor()
-	SetCursorStyle(CursorStyle)
+	SetCursor(CursorStyle, Color)
 	Size() (width, height int)
 	EnableMouse(...MouseFlags)
 	DisableMouse()
@@ -334,7 +373,10 @@ type screenImpl interface {
 	Resume() error
 	Beep() error
 	SetSize(int, int)
+	SetTitle(string)
 	Tty() (Tty, bool)
+	SetClipboard([]byte)
+	GetClipboard()
 
 	// Following methods are not part of the Screen api, but are used for interaction with
 	// the common layer code.
@@ -361,11 +403,37 @@ type baseScreen struct {
 	screenImpl
 }
 
+func (b *baseScreen) Put(x int, y int, str string, style Style) (remain string, width int) {
+	cells := b.GetCells()
+	b.Lock()
+	defer b.Unlock()
+	return cells.Put(x, y, str, style)
+}
+
+func (b *baseScreen) PutStrStyled(x int, y int, str string, style Style) {
+	cells := b.GetCells()
+	b.Lock()
+	cols, rows := cells.Size()
+	width := 0
+	for str != "" && x < cols && y < rows {
+		str, width = cells.Put(x, y, str, style)
+		if width == 0 {
+			break
+		}
+		x += width
+	}
+	defer b.Unlock()
+}
+
+func (b *baseScreen) PutStr(x, y int, str string) {
+	b.PutStrStyled(x, y, str, StyleDefault)
+}
+
 func (b *baseScreen) SetCell(x int, y int, style Style, ch ...rune) {
 	if len(ch) > 0 {
-		b.SetContent(x, y, ch[0], ch[1:], style)
+		b.Put(x, y, string(ch), style)
 	} else {
-		b.SetContent(x, y, ' ', nil, style)
+		b.Put(x, y, " ", style)
 	}
 }
 
@@ -380,12 +448,15 @@ func (b *baseScreen) Fill(r rune, style Style) {
 	b.Unlock()
 }
 
-func (b *baseScreen) SetContent(x, y int, mainc rune, combc []rune, st Style) {
+func (b *baseScreen) SetContent(x, y int, mainc rune, combc []rune, style Style) {
+	b.Put(x, y, string(append([]rune{mainc}, combc...)), style)
+}
 
+func (b *baseScreen) Get(x, y int) (string, Style, int) {
 	cells := b.GetCells()
 	b.Lock()
-	cells.SetContent(x, y, mainc, combc, st)
-	b.Unlock()
+	defer b.Unlock()
+	return cells.Get(x, y)
 }
 
 func (b *baseScreen) GetContent(x, y int) (rune, []rune, Style, int) {
@@ -462,5 +533,13 @@ func (b *baseScreen) PostEvent(ev Event) error {
 		return nil
 	default:
 		return ErrEventQFull
+	}
+}
+
+func (b *baseScreen) SetCursorStyle(cs CursorStyle, ccs ...Color) {
+	if len(ccs) > 0 {
+		b.SetCursor(cs, ccs[0])
+	} else {
+		b.SetCursor(cs, ColorNone)
 	}
 }

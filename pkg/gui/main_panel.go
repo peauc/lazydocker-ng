@@ -11,7 +11,9 @@ func (gui *Gui) scrollUpMain() error {
 	mainView.Autoscroll = false
 	ox, oy := mainView.Origin()
 	newOy := int(math.Max(0, float64(oy-gui.Config.UserConfig.Gui.ScrollHeight)))
-	return mainView.SetOrigin(ox, newOy)
+	mainView.SetOrigin(ox, newOy)
+
+	return nil
 }
 
 func (gui *Gui) scrollDownMain() error {
@@ -30,7 +32,9 @@ func (gui *Gui) scrollDownMain() error {
 		return nil
 	}
 
-	return mainView.SetOrigin(ox, oy+gui.Config.UserConfig.Gui.ScrollHeight)
+	mainView.SetOrigin(ox, oy+gui.Config.UserConfig.Gui.ScrollHeight)
+
+	return nil
 }
 
 func (gui *Gui) scrollLeftMain(g *gocui.Gui, v *gocui.View) error {
@@ -38,7 +42,9 @@ func (gui *Gui) scrollLeftMain(g *gocui.Gui, v *gocui.View) error {
 	ox, oy := mainView.Origin()
 	newOx := int(math.Max(0, float64(ox-gui.Config.UserConfig.Gui.ScrollHeight)))
 
-	return mainView.SetOrigin(newOx, oy)
+	mainView.SetOrigin(newOx, oy)
+
+	return nil
 }
 
 func (gui *Gui) scrollRightMain(g *gocui.Gui, v *gocui.View) error {
@@ -58,7 +64,9 @@ func (gui *Gui) scrollRightMain(g *gocui.Gui, v *gocui.View) error {
 		return nil
 	}
 
-	return mainView.SetOrigin(ox+gui.Config.UserConfig.Gui.ScrollHeight, oy)
+	mainView.SetOrigin(ox+gui.Config.UserConfig.Gui.ScrollHeight, oy)
+
+	return nil
 }
 
 func (gui *Gui) autoScrollMain(g *gocui.Gui, v *gocui.View) error {
@@ -68,8 +76,8 @@ func (gui *Gui) autoScrollMain(g *gocui.Gui, v *gocui.View) error {
 
 func (gui *Gui) jumpToTopMain(g *gocui.Gui, v *gocui.View) error {
 	gui.Views.Main.Autoscroll = false
-	_ = gui.Views.Main.SetOrigin(0, 0)
-	_ = gui.Views.Main.SetCursor(0, 0)
+	gui.Views.Main.SetOrigin(0, 0)
+	gui.Views.Main.SetCursor(0, 0)
 	return nil
 }
 
