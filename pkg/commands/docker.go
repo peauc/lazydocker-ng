@@ -28,7 +28,6 @@ import (
 )
 
 const (
-	APIVersion       = "1.25"
 	dockerHostEnvKey = "DOCKER_HOST"
 )
 
@@ -92,7 +91,7 @@ func NewDockerCommand(log *logrus.Entry, osCommand *OSCommand, tr *i18n.Translat
 
 	clientOpts := []client.Opt{
 		client.WithTLSClientConfigFromEnv(),
-		client.WithVersion(APIVersion),
+		client.WithAPIVersionNegotiation(),
 		client.WithHost(dockerHost),
 	}
 
