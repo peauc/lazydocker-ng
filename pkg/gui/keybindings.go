@@ -144,9 +144,9 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 		},
 		{
 			ViewName:    "project",
-			Key:         gocui.KeyCtrlP,
+			Key:         gocui.KeySpace,
 			Modifier:    gocui.ModNone,
-			Handler:     gui.handleCreateProjectMenu,
+			Handler:     gui.handleProjectSelect,
 			Description: gui.Tr.SwitchProject,
 		},
 		{
@@ -333,14 +333,14 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Description: gui.Tr.ViewLogs,
 		},
 		{
-			ViewName:    "services",
+			ViewName:    "project",
 			Key:         'U',
 			Modifier:    gocui.ModNone,
 			Handler:     gui.handleProjectUp,
 			Description: gui.Tr.UpProject,
 		},
 		{
-			ViewName:    "services",
+			ViewName:    "project",
 			Key:         'D',
 			Modifier:    gocui.ModNone,
 			Handler:     gui.handleProjectDown,

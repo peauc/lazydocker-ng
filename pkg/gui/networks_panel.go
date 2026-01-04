@@ -45,7 +45,7 @@ func (gui *Gui) getNetworksPanel() *panels.SideListPanel[*commands.Network] {
 		},
 		GetTableCells: presentation.GetNetworkDisplayStrings,
 		Hide: func() bool {
-			return gui.State.UIMode != MODE_MAINTENANCE
+			return gui.State.UIMode != MODE_RESSOURCES
 		},
 	}
 }
