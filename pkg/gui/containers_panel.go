@@ -293,7 +293,7 @@ func (gui *Gui) refreshContainersAndServices() error {
 }
 
 func (gui *Gui) renderContainersAndServices() error {
-	if gui.DockerCommand.InDockerComposeProject {
+	if gui.State.InDockerComposeMode {
 		if err := gui.Panels.Services.RerenderList(); err != nil {
 			return err
 		}

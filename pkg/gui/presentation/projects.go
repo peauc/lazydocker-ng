@@ -11,14 +11,14 @@ import (
 func GetProjectDisplayStrings(project *commands.Project, selectedProjectName string) []string {
 	statusIcon := getProjectStatusIcon(project)
 
-	containerInfo := fmt.Sprintf("%d/%d", project.RunningCount, project.ContainerCount)
-
-	path := project.Path
-	if len(path) > 30 {
-		path = "..." + path[len(path)-27:]
+	// Show service count when no containers exist, otherwise show container count
+	var containerInfo string
+	if project.ContainerCount > 0 {
+		containerInfo = fmt.Sprintf("%d/%d", project.RunningCount, project.ContainerCount)
+	} else {
+		containerInfo = fmt.Sprintf("0/%d", project.ServiceCount)
 	}
 
-	// Highlight the project name if it's the selected project
 	projectName := project.Name
 	if selectedProjectName != "" && project.Name == selectedProjectName {
 		projectName = utils.ColoredStringDirect(project.Name, color.New(color.FgGreen, color.Bold))

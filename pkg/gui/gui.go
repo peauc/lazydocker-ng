@@ -97,6 +97,10 @@ type guiState struct {
 	// Focus memory: stores last focused panel for each mode
 	// Key is mode, value is panel view name
 	LastFocusedPanel map[UIMode]string
+
+	// Docker Compose context
+	InDockerComposeMode           bool   // Runtime: are we in project mode or container-only mode
+	CurrentDockerComposeProject string // Runtime: which project is selected?
 }
 
 //type projectState struct {
@@ -128,7 +132,7 @@ const (
 type UIMode int
 
 const (
-	MODE_CONTAINER UIMode = iota  // Projects, Services, Containers
+	MODE_CONTAINER  UIMode = iota // Projects, Services, Containers
 	MODE_RESSOURCES               // Images, Volumes, Networks
 )
 
@@ -491,7 +495,7 @@ func (gui *Gui) ShouldRefresh(key string) bool {
 }
 
 func (gui *Gui) initiallyFocusedViewName() string {
-	if gui.DockerCommand.InDockerComposeProject {
+	if gui.State.InDockerComposeMode {
 		return "services"
 	}
 	return "containers"

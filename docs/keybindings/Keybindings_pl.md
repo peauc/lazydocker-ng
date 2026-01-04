@@ -20,9 +20,11 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
 
 <pre>
   <kbd>e</kbd>: edytuj konfigurację
-  <kbd>P</kbd>: switch project
+  <kbd>space</kbd>: switch project
   <kbd>o</kbd>: otwórz konfigurację
   <kbd>m</kbd>: pokaż logi
+  <kbd>U</kbd>: up project
+  <kbd>D</kbd>: down project
   <kbd>enter</kbd>: skup na głównym panelu
   <kbd>[</kbd>: poprzednia zakładka
   <kbd>]</kbd>: następna zakładka
@@ -60,8 +62,6 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
   <kbd>S</kbd>: start
   <kbd>a</kbd>: przyczep
   <kbd>m</kbd>: pokaż logi
-  <kbd>U</kbd>: up project
-  <kbd>D</kbd>: down project
   <kbd>R</kbd>: pokaż opcje restartu
   <kbd>c</kbd>: wykonaj predefiniowaną własną komende
   <kbd>b</kbd>: view bulk commands
