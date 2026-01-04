@@ -27,11 +27,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	APIVersion       = "1.25"
-	dockerHostEnvKey = "DOCKER_HOST"
-)
-
 // DockerCommand is our main docker interface
 type DockerCommand struct {
 	Log                         *logrus.Entry
@@ -91,7 +86,7 @@ func NewDockerCommand(log *logrus.Entry, osCommand *OSCommand, tr *i18n.Translat
 
 	clientOpts := []client.Opt{
 		client.WithTLSClientConfigFromEnv(),
-		client.WithVersion(APIVersion),
+		client.WithAPIVersionNegotiation(),
 		client.WithHost(dockerHost),
 	}
 
