@@ -251,13 +251,6 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 		},
 		{
 			ViewName:    "project",
-			Key:         'o',
-			Modifier:    gocui.ModNone,
-			Handler:     gui.handleOpenConfig,
-			Description: gui.Tr.OpenConfig,
-		},
-		{
-			ViewName:    "project",
 			Key:         'm',
 			Modifier:    gocui.ModNone,
 			Handler:     gui.handleViewAllLogs,
