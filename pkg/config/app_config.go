@@ -2,7 +2,7 @@
 // all in PascalCase but in your actual config.yml they'll be in camelCase.
 // You can view the default config with `lazydocker --config`.
 // You can open your config file by going to the status panel (using left-arrow)
-// and pressing 'o'.
+// and pressing 'e'.
 // You can directly edit the file (e.g. in vim) by pressing 'e' instead.
 // To see the final config after your user-specific options have been merged
 // with the defaults, go to the 'about' tab in the status panel.
@@ -97,13 +97,6 @@ type GuiConfig struct {
 	// of a grey, but that doesn't work in your average terminal. I highly
 	// recommended finding a combination that works for you
 	Theme ThemeConfig `yaml:"theme,omitempty"`
-
-	// ShowAllContainers determines whether the Containers panel contains all the
-	// containers returned by `docker ps -a`, or just those containers that aren't
-	// directly linked to a service. It is probably desirable to enable this if
-	// you have multiple containers per service, but otherwise it can cause a lot
-	// of clutter
-	ShowAllContainers bool `yaml:"showAllContainers,omitempty"`
 
 	// ReturnImmediately determines whether you get the 'press enter to return to
 	// lazydocker' message after a subprocess has completed. You would set this to
@@ -371,7 +364,6 @@ func GetDefaultConfig() UserConfig {
 				SelectedLineBgColor: []string{"blue"},
 				OptionsTextColor:    []string{"blue"},
 			},
-			ShowAllContainers:          false,
 			ReturnImmediately:          false,
 			WrapMainPanel:              true,
 			LegacySortContainers:       false,

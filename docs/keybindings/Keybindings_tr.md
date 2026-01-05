@@ -6,6 +6,8 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
 
 <pre>
   <kbd>	</kbd>: Toggle Mode
+  <kbd>P</kbd>: toggle project mode
+  <kbd>0</kbd>: About
   <kbd>+</kbd>: next screen mode (normal/half/fullscreen)
   <kbd>_</kbd>: prev screen mode
   <kbd>1</kbd>: focus projects panel
@@ -16,13 +18,22 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
   <kbd>6</kbd>: focus networks panel
 </pre>
 
+## 
+
+<pre>
+  <kbd>esc</kbd>: kapat
+  <kbd>q</kbd>: kapat
+  <kbd>o</kbd>: lazydocker ayarlarını aç
+  <kbd>e</kbd>: lazzydocker ayarlarını düzenle
+</pre>
+
 ## Proje
 
 <pre>
-  <kbd>e</kbd>: lazzydocker ayarlarını düzenle
-  <kbd>P</kbd>: switch project
-  <kbd>o</kbd>: lazydocker ayarlarını aç
+  <kbd>space</kbd>: switch project
   <kbd>m</kbd>: kayıt defterini görüntüle
+  <kbd>U</kbd>: up project
+  <kbd>D</kbd>: down project
   <kbd>enter</kbd>: ana panele odaklan
   <kbd>[</kbd>: önceki sekme
   <kbd>]</kbd>: sonraki sekme
@@ -60,8 +71,6 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
   <kbd>S</kbd>: start
   <kbd>a</kbd>: bağlan/iliştir
   <kbd>m</kbd>: kayıt defterini görüntüle
-  <kbd>U</kbd>: up project
-  <kbd>D</kbd>: down project
   <kbd>R</kbd>: yeniden başlatma seçeneklerini görüntüle
   <kbd>c</kbd>: önceden tanımlanmış özel komutu çalıştır
   <kbd>b</kbd>: view bulk commands

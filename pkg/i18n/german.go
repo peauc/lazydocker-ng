@@ -16,7 +16,6 @@ func germanSet() TranslationSet {
 		CannotAttachStoppedContainerError: "Du kannst keinen angehaltenen Container anbinden. Du musst ihn erst starten (was du tun kannst, indem du 'r' drückst), (ja, ich bin zu faul um das zu automatisieren) (aber ist schon cool, dass ich so eine Konversation durch eine Fehlermeldung mit dir führen kann)",
 		CannotAccessDockerSocketError:     "Kann nicht auf den Socket zugreifen: unix:///var/run/docker.sock\nFühre lazydocker als root aus oder lese https://docs.docker.com/install/linux/linux-postinstall/",
 
-		Donate:  "Spenden",
 		Confirm: "Bestätigen",
 
 		Return:             "zurück",

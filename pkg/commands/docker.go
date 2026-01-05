@@ -29,16 +29,14 @@ import (
 
 // DockerCommand is our main docker interface
 type DockerCommand struct {
-	Log                         *logrus.Entry
-	OSCommand                   *OSCommand
-	Tr                          *i18n.TranslationSet
-	Config                      *config.AppConfig
-	Client                      *client.Client
-	InDockerComposeProject      bool
-	CurrentDockerComposeProject string
-	ErrorChan                   chan error
-	ContainerMutex              deadlock.Mutex
-	ServiceMutex                deadlock.Mutex
+	Log            *logrus.Entry
+	OSCommand      *OSCommand
+	Tr             *i18n.TranslationSet
+	Config         *config.AppConfig
+	Client         *client.Client
+	ErrorChan      chan error
+	ContainerMutex deadlock.Mutex
+	ServiceMutex   deadlock.Mutex
 
 	Closers []io.Closer
 }
@@ -65,6 +63,46 @@ func (c *DockerCommand) NewCommandObject(obj CommandObject) CommandObject {
 	defaultObj := CommandObject{DockerCompose: c.Config.UserConfig.CommandTemplates.DockerCompose}
 	_ = mergo.Merge(&defaultObj, obj)
 	return defaultObj
+}
+
+// NewCommandObjectWithComposeFile creates a CommandObject with project-specific compose files
+// Use this for commands that need the compose file (up, down, config, etc.)
+func (c *DockerCommand) NewCommandObjectWithComposeFile(project *Project) CommandObject {
+	dockerComposeCmd := c.Config.UserConfig.CommandTemplates.DockerCompose
+	if project == nil || project.ComposeFile == "" {
+		return CommandObject{DockerCompose: dockerComposeCmd}
+	}
+
+	// If the project has compose files specified in labels, add them with -f flags
+	// The config_files label can contain multiple files separated by commas
+	files := strings.Split(project.ComposeFile, ",")
+	for _, file := range files {
+		file = strings.TrimSpace(file)
+		if file != "" {
+			// Extract just the filename from the absolute path
+			// since we'll be running in the project's directory
+			if idx := strings.LastIndex(file, "/"); idx >= 0 {
+				file = file[idx+1:]
+			}
+			dockerComposeCmd += " -f " + file
+		}
+	}
+
+	return CommandObject{DockerCompose: dockerComposeCmd}
+}
+
+// NewCommandObjectWithProjectName creates a CommandObject using the project name with -p flag
+// Use this for commands that don't need the compose file (logs, ps, etc.)
+// This is more reliable than using compose files since it works without the file
+func (c *DockerCommand) NewCommandObjectWithProjectName(project *Project) CommandObject {
+	dockerComposeCmd := c.Config.UserConfig.CommandTemplates.DockerCompose
+
+	// Use -p flag with project name - this works without compose file
+	if project != nil && project.Name != "" {
+		dockerComposeCmd += " -p " + project.Name
+	}
+
+	return CommandObject{DockerCompose: dockerComposeCmd}
 }
 
 // NewDockerCommand creates a DockerCommand struct that wraps the docker client.
@@ -96,14 +134,13 @@ func NewDockerCommand(log *logrus.Entry, osCommand *OSCommand, tr *i18n.Translat
 	}
 
 	dockerCommand := &DockerCommand{
-		Log:                    log,
-		OSCommand:              osCommand,
-		Tr:                     tr,
-		Config:                 config,
-		Client:                 cli,
-		ErrorChan:              errorChan,
-		InDockerComposeProject: true,
-		Closers:                []io.Closer{tunnelResult.Closer},
+		Log:       log,
+		OSCommand: osCommand,
+		Tr:        tr,
+		Config:    config,
+		Client:    cli,
+		ErrorChan: errorChan,
+		Closers:   []io.Closer{tunnelResult.Closer},
 	}
 
 	dockerCommand.setDockerComposeCommand(config)
@@ -178,7 +215,6 @@ func (c *DockerCommand) RefreshContainersAndServices(currentServices []*Service,
 		}
 
 		c.assignContainersToServices(containers, services)
-		// c.assignContainersToProjects(containers)
 	}
 
 	return containers, services, nil
@@ -275,7 +311,7 @@ func (c *DockerCommand) GetServicesFromContainers(containers []*Container, curre
 		}
 
 		service := &Service{
-			Name:          cont.Name,
+			Name:          cont.ServiceName,
 			ID:            cont.ID,
 			OSCommand:     c.OSCommand,
 			Log:           c.Log,
@@ -288,7 +324,7 @@ func (c *DockerCommand) GetServicesFromContainers(containers []*Container, curre
 	if len(services) == 0 {
 		// If no services are found in running containers fetch services from dockerCompose
 		var err error
-		services, err = c.GetServices()
+		services, err = c.GetServices(currentProject != nil && currentProject.IsDockerCompose)
 		if err != nil {
 			return nil, err
 		}
@@ -298,8 +334,8 @@ func (c *DockerCommand) GetServicesFromContainers(containers []*Container, curre
 }
 
 // GetServices gets services
-func (c *DockerCommand) GetServices() ([]*Service, error) {
-	if !c.InDockerComposeProject {
+func (c *DockerCommand) GetServices(inComposeProject bool) ([]*Service, error) {
+	if !inComposeProject {
 		return nil, nil
 	}
 
@@ -313,7 +349,6 @@ func (c *DockerCommand) GetServices() ([]*Service, error) {
 	// output looks like:
 	// service1
 	// service2
-
 	lines := utils.SplitLines(output)
 	services := make([]*Service, len(lines))
 	for i, str := range lines {
@@ -338,7 +373,7 @@ func (c *DockerCommand) RefreshContainerDetails(containers []*Container) error {
 	return nil
 }
 
-// Attaches the details returned from docker inspect to each of the containers
+// SetContainerDetails Attaches the details returned from docker inspect to each of the containers
 // this contains a bit more info than what you get from the go-docker client
 func (c *DockerCommand) SetContainerDetails(containers []*Container) {
 	wg := sync.WaitGroup{}
@@ -384,6 +419,195 @@ func (c *DockerCommand) DockerComposeConfig() string {
 		output = err.Error()
 	}
 	return output
+}
+
+// DockerComposeConfigForProject gets the docker compose config for a specific project
+func (c *DockerCommand) DockerComposeConfigForProject(projectPath string) string {
+	output, _ := c.DockerComposeConfigForProjectWithError(projectPath)
+	return output
+}
+
+// DockerComposeConfigForProjectWithError gets the docker compose config and returns the error separately
+func (c *DockerCommand) DockerComposeConfigForProjectWithError(projectPath string) (string, error) {
+	if projectPath == "" {
+		output, err := c.OSCommand.RunCommandWithOutput(
+			utils.ApplyTemplate(
+				c.OSCommand.Config.UserConfig.CommandTemplates.DockerComposeConfig,
+				c.NewCommandObject(CommandObject{}),
+			),
+		)
+		return output, err
+	}
+
+	cmd := c.OSCommand.ExecutableFromString(
+		utils.ApplyTemplate(
+			c.OSCommand.Config.UserConfig.CommandTemplates.DockerComposeConfig,
+			c.NewCommandObject(CommandObject{}),
+		),
+	)
+	cmd.Dir = projectPath
+
+	output, err := c.OSCommand.RunExecutableWithOutput(cmd)
+	return output, err
+}
+
+// IsDockerComposeFileNotFoundError checks if the error is due to missing docker-compose file
+func IsDockerComposeFileNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	return strings.Contains(errStr, "no configuration file provided") ||
+		strings.Contains(errStr, "not found")
+}
+
+// IsDockerComposeYAMLError checks if the error is due to YAML parsing issues
+func IsDockerComposeYAMLError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	return strings.Contains(errStr, "yaml:") ||
+		strings.Contains(errStr, "parsing")
+}
+
+// IsDockerComposeValidationError checks if the error is due to schema validation
+func IsDockerComposeValidationError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	return strings.Contains(errStr, "error decoding") ||
+		strings.Contains(errStr, "validation failed") ||
+		strings.Contains(errStr, "invalid")
+}
+
+// GetProjectServiceCount returns the number of services defined in a project's docker-compose file
+func (c *DockerCommand) GetProjectServiceCount(projectPath string) (int, error) {
+	composeCommand := c.Config.UserConfig.CommandTemplates.DockerCompose
+	cmdStr := fmt.Sprintf("%s config --services", composeCommand)
+
+	if projectPath == "" {
+		output, err := c.OSCommand.RunCommandWithOutput(cmdStr)
+		if err != nil {
+			return -1, err
+		}
+		lines := utils.SplitLines(output)
+		return len(lines), nil
+	}
+
+	cmd := c.OSCommand.ExecutableFromString(cmdStr)
+	cmd.Dir = projectPath
+	output, err := c.OSCommand.RunExecutableWithOutput(cmd)
+	if err != nil {
+		return -1, err
+	}
+
+	lines := utils.SplitLines(output)
+	return len(lines), nil
+}
+
+// GetProjects extracts project information from containers and optionally adds the current directory project
+func (c *DockerCommand) GetProjects(containers []*Container, currentProjectDir string, startedInComposeDir bool) []*Project {
+	projectsMap := make(map[string]*Project)
+	servicesPerProject := make(map[string]map[string]bool)
+
+	// Build project info from containers
+	for _, container := range containers {
+		projectName, exists := container.Container.Labels["com.docker.compose.project"]
+		if !exists || projectName == "" {
+			continue
+		}
+
+		if _, ok := projectsMap[projectName]; !ok {
+			projectsMap[projectName] = &Project{
+				Name:            projectName,
+				IsDockerCompose: true,
+				Status:          "unknown",
+				LastUpdated:     time.Now(),
+			}
+			servicesPerProject[projectName] = make(map[string]bool)
+		}
+
+		project := projectsMap[projectName]
+		project.ContainerCount++
+
+		if container.Container.State == "running" {
+			project.RunningCount++
+		}
+
+		if project.Path == "" {
+			if workingDir, ok := container.Container.Labels["com.docker.compose.project.working_dir"]; ok {
+				project.Path = workingDir
+			}
+		}
+
+		if project.ComposeFile == "" {
+			if configFiles, ok := container.Container.Labels["com.docker.compose.project.config_files"]; ok {
+				project.ComposeFile = configFiles
+			}
+		}
+
+		if serviceName, ok := container.Container.Labels["com.docker.compose.service"]; ok && serviceName != "" {
+			servicesPerProject[projectName][serviceName] = true
+		}
+	}
+
+	projectsList := make([]*Project, 0, len(projectsMap))
+	for _, project := range projectsMap {
+		projectsList = append(projectsList, project)
+	}
+
+	// Add current directory project if we started in a compose directory and it's not already in the list
+	if startedInComposeDir && currentProjectDir != "" {
+		currentDirProjectName := strings.TrimPrefix(currentProjectDir, "/")
+		if idx := strings.LastIndex(currentDirProjectName, "/"); idx >= 0 {
+			currentDirProjectName = currentDirProjectName[idx+1:]
+		}
+
+		if _, exists := projectsMap[currentDirProjectName]; !exists {
+			currentDirProject := &Project{
+				Name:            currentDirProjectName,
+				Path:            currentProjectDir,
+				IsDockerCompose: true,
+				Status:          "not created",
+			}
+
+			// Get service count from docker-compose.yml
+			serviceCount, err := c.GetProjectServiceCount(currentProjectDir)
+			if err == nil {
+				currentDirProject.ServiceCount = serviceCount
+			} else {
+				currentDirProject.ServiceCount = -1
+			}
+
+			projectsList = append(projectsList, currentDirProject)
+		}
+	}
+
+	// Calculate status and service counts for all projects
+	for _, project := range projectsMap {
+		switch project.RunningCount {
+		case 0:
+			project.Status = "stopped"
+		case project.ContainerCount:
+			project.Status = "running"
+		default:
+			project.Status = "mixed"
+		}
+
+		project.ServiceCount = len(servicesPerProject[project.Name])
+
+		// If we have a path and no service count, try to get it from docker-compose.yml
+		if project.ServiceCount == 0 && project.Path != "" {
+			serviceCount, err := c.GetProjectServiceCount(project.Path)
+			if err == nil {
+				project.ServiceCount = serviceCount
+			}
+		}
+	}
+
+	return projectsList
 }
 
 // determineDockerHost tries to the determine the docker host that we should connect to

@@ -1,29 +1,9 @@
 package gui
 
 import (
-	"os"
-
-	"github.com/fatih/color"
 	"github.com/jesseduffield/gocui"
 	"github.com/samber/lo"
 )
-
-// See https://github.com/xtermjs/xterm.js/issues/4238
-// VSCode is soon to fix this in an upcoming update.
-// Once that's done, we can scrap the HIDE_UNDERSCORES variable
-var (
-	underscoreEnvChecked bool
-	hideUnderscores      bool
-)
-
-func hideUnderScores() bool {
-	if !underscoreEnvChecked {
-		hideUnderscores = os.Getenv("TERM_PROGRAM") == "vscode"
-		underscoreEnvChecked = true
-	}
-
-	return hideUnderscores
-}
 
 type Views struct {
 	// mode tabs
@@ -52,6 +32,7 @@ type Views struct {
 	// popups
 	Confirmation *gocui.View
 	Menu         *gocui.View
+	About        *gocui.View
 
 	// will cover everything when it appears
 	Limit *gocui.View
@@ -90,7 +71,8 @@ func (gui *Gui) orderedViewNameMappings() []viewNameMapping {
 		{viewPtr: &gui.Views.Menu, name: "menu", autoPosition: false},
 		{viewPtr: &gui.Views.Confirmation, name: "confirmation", autoPosition: false},
 
-		// this guy will cover everything else when it appears
+		// full-screen views that cover everything when they appear
+		{viewPtr: &gui.Views.About, name: "about", autoPosition: true},
 		{viewPtr: &gui.Views.Limit, name: "limit", autoPosition: true},
 	}
 }
@@ -127,6 +109,11 @@ func (gui *Gui) createAllViews() error {
 	// when you run a docker container with the -it flags (interactive mode) it adds carriage returns for some reason. This is not docker's fault, it's an os-level default.
 	gui.Views.Main.IgnoreCarriageReturns = true
 
+	gui.Views.ModeTabs.Frame = true
+	gui.Views.ModeTabs.Tabs = []string{"Container", "Ressources"}
+	gui.Views.ModeTabs.TabIndex = int(gui.State.UIMode)
+	gui.Views.ModeTabs.TitlePrefix = "[Tab]"
+
 	gui.Views.Project.Title = gui.Tr.ProjectTitle
 	gui.Views.Project.TitlePrefix = "[1]"
 
@@ -137,11 +124,7 @@ func (gui *Gui) createAllViews() error {
 
 	gui.Views.Containers.Highlight = true
 	gui.Views.Containers.SelBgColor = selectedLineBgColor
-	if gui.Config.UserConfig.Gui.ShowAllContainers || !gui.DockerCommand.InDockerComposeProject {
-		gui.Views.Containers.Title = gui.Tr.ContainersTitle
-	} else {
-		gui.Views.Containers.Title = gui.Tr.StandaloneContainersTitle
-	}
+	gui.Views.Containers.Title = gui.Tr.ContainersTitle
 	gui.Views.Containers.TitlePrefix = "[3]"
 
 	gui.Views.Images.Highlight = true
@@ -173,6 +156,9 @@ func (gui *Gui) createAllViews() error {
 	gui.Views.Menu.Visible = false
 	gui.Views.Menu.SelBgColor = selectedLineBgColor
 
+	gui.Views.About.Visible = false
+	gui.Views.About.Wrap = true
+
 	gui.Views.Limit.Visible = false
 	gui.Views.Limit.Title = gui.Tr.NotEnoughSpace
 	gui.Views.Limit.Wrap = true
@@ -201,18 +187,7 @@ func (gui *Gui) setInitialViewContent() error {
 }
 
 func (gui *Gui) getInformationContent() string {
-	informationStr := gui.Config.Version
-	if !gui.g.Mouse {
-		return informationStr
-	}
-
-	attrs := []color.Attribute{color.FgMagenta}
-	if !hideUnderScores() {
-		attrs = append(attrs, color.Underline)
-	}
-
-	donate := color.New(attrs...).Sprint(gui.Tr.Donate)
-	return donate + " " + informationStr
+	return gui.Config.Version
 }
 
 func (gui *Gui) popupViewNames() []string {

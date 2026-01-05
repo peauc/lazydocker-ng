@@ -21,7 +21,6 @@ func spanishSet() TranslationSet {
 		CannotAccessDockerSocketError: "No es posible acceder al docker socket en: unix:///var/run/docker.sock\nEjecuta lazydocker como root o lee https://docs.docker.com/install/linux/linux-postinstall/",
 		CannotKillChildError:          "Esperamos tres segundos a que el proceso hijo se detenga. Debe de haber un proceso huérfano que continua activo en tu sistema.",
 
-		Donate:  "Donar",
 		Confirm: "Confirmar",
 
 		Return:                      "regresar",

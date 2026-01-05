@@ -6,6 +6,8 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
 
 <pre>
   <kbd>	</kbd>: Toggle Mode
+  <kbd>P</kbd>: toggle project mode
+  <kbd>0</kbd>: About
   <kbd>+</kbd>: modo de tela seguinte (normal/meia/tela cheia)
   <kbd>_</kbd>: modo de tela anterior
   <kbd>1</kbd>: focus projects panel
@@ -16,13 +18,22 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
   <kbd>6</kbd>: focus networks panel
 </pre>
 
+## 
+
+<pre>
+  <kbd>esc</kbd>: fechar
+  <kbd>q</kbd>: fechar
+  <kbd>o</kbd>: abrir configuração do lazydocker
+  <kbd>e</kbd>: editar configuração do lazydocker
+</pre>
+
 ## Projeto
 
 <pre>
-  <kbd>e</kbd>: editar configuração do lazydocker
-  <kbd>P</kbd>: switch project
-  <kbd>o</kbd>: abrir configuração do lazydocker
+  <kbd>space</kbd>: switch project
   <kbd>m</kbd>: ver logs
+  <kbd>U</kbd>: subir projeto
+  <kbd>D</kbd>: derrubar projeto
   <kbd>enter</kbd>: focar no painel principal
   <kbd>[</kbd>: aba anterior
   <kbd>]</kbd>: próxima aba
@@ -60,8 +71,6 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
   <kbd>S</kbd>: iniciar
   <kbd>a</kbd>: anexar
   <kbd>m</kbd>: ver logs
-  <kbd>U</kbd>: subir projeto
-  <kbd>D</kbd>: derrubar projeto
   <kbd>R</kbd>: ver opções de reinício
   <kbd>c</kbd>: executar comando personalizado predefinido
   <kbd>b</kbd>: ver comandos em massa

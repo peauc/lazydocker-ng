@@ -97,6 +97,10 @@ type guiState struct {
 	// Focus memory: stores last focused panel for each mode
 	// Key is mode, value is panel view name
 	LastFocusedPanel map[UIMode]string
+
+	// Docker Compose context
+	InDockerComposeMode         bool   // Runtime: are we in project mode or container-only mode
+	CurrentDockerComposeProject string // Runtime: which project is selected?
 }
 
 //type projectState struct {
@@ -128,8 +132,8 @@ const (
 type UIMode int
 
 const (
-	MODE_OPERATION   UIMode = iota // Projects, Services, Containers
-	MODE_MAINTENANCE               // Images, Volumes, Networks
+	MODE_CONTAINERS UIMode = iota // Projects, Services, Containers
+	MODE_RESSOURCES               // Images, Volumes, Networks
 )
 
 func getScreenMode(config *config.AppConfig) WindowMaximisation {
@@ -160,10 +164,10 @@ func NewGui(log *logrus.Entry, dockerCommand *commands.DockerCommand, oSCommand 
 		ScreenMode:           getScreenMode(config),
 
 		// Initialize UI mode system
-		UIMode: MODE_OPERATION,
+		UIMode: MODE_CONTAINERS,
 		LastFocusedPanel: map[UIMode]string{
-			MODE_OPERATION:   "",
-			MODE_MAINTENANCE: "",
+			MODE_CONTAINERS: "",
+			MODE_RESSOURCES: "",
 		},
 	}
 
@@ -190,9 +194,47 @@ func (gui *Gui) renderGlobalOptions() error {
 		"PgUp/PgDn": gui.Tr.Scroll,
 		"← → ↑ ↓":   gui.Tr.Navigate,
 		"q":         gui.Tr.Quit,
-		"b":         gui.Tr.ViewBulkCommands,
 		"x":         gui.Tr.Menu,
+		"0":         gui.Tr.AboutTitle,
 	})
+}
+
+func (gui *Gui) renderProjectOptions() error {
+	return gui.renderOptionsMap(map[string]string{
+		"space":     gui.Tr.SwitchProject,
+		"PgUp/PgDn": gui.Tr.Scroll,
+		"← → ↑ ↓":   gui.Tr.Navigate,
+		"q":         gui.Tr.Quit,
+		"x":         gui.Tr.Menu,
+		"0":         gui.Tr.AboutTitle,
+	})
+}
+
+func (gui *Gui) handleToggleProjectMode(g *gocui.Gui, v *gocui.View) error {
+	gui.State.InDockerComposeMode = !gui.State.InDockerComposeMode
+
+	// Refresh the UI to reflect the mode change
+	if err := gui.refreshProjects(); err != nil {
+		return err
+	}
+	if err := gui.refreshContainersAndServices(); err != nil {
+		return err
+	}
+
+	// Focus the appropriate panel based on the new mode
+	var targetView string
+	if gui.State.InDockerComposeMode {
+		targetView = "project"
+	} else {
+		targetView = "containers"
+	}
+
+	view, err := g.View(targetView)
+	if err != nil {
+		return err
+	}
+
+	return gui.switchFocus(view)
 }
 
 func (gui *Gui) goEvery(interval time.Duration, function func() error) {
@@ -446,18 +488,6 @@ func (gui *Gui) escape() error {
 	return nil
 }
 
-func (gui *Gui) handleDonate(g *gocui.Gui, v *gocui.View) error {
-	if !gui.g.Mouse {
-		return nil
-	}
-
-	cx, _ := v.Cursor()
-	if cx > len(gui.Tr.Donate) {
-		return nil
-	}
-	return gui.OSCommand.OpenLink("https://github.com/sponsors/jesseduffield")
-}
-
 func (gui *Gui) editFile(filename string) error {
 	cmd, err := gui.OSCommand.EditFile(filename)
 	if err != nil {
@@ -491,8 +521,8 @@ func (gui *Gui) ShouldRefresh(key string) bool {
 }
 
 func (gui *Gui) initiallyFocusedViewName() string {
-	if gui.DockerCommand.InDockerComposeProject {
-		return "services"
+	if gui.State.InDockerComposeMode {
+		return "project"
 	}
 	return "containers"
 }

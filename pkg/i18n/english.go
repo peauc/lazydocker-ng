@@ -28,7 +28,6 @@ type TranslationSet struct {
 	CannotKillChildError                       string
 	CannotStartStop                            string
 
-	Donate                      string
 	Cancel                      string
 	CustomCommandTitle          string
 	BulkCommandTitle            string
@@ -112,6 +111,7 @@ type TranslationSet struct {
 	OpenInBrowser               string
 	SortContainersByState       string
 	SwitchProject               string
+	ToggleProjectMode           string
 
 	LogsTitle                 string
 	ConfigTitle               string
@@ -119,6 +119,7 @@ type TranslationSet struct {
 	DockerComposeConfigTitle  string
 	StatsTitle                string
 	CreditsTitle              string
+	AboutTitle                string
 	ContainerConfigTitle      string
 	ContainerEnvTitle         string
 	NothingToDisplay          string
@@ -165,7 +166,6 @@ func englishSet() TranslationSet {
 		CannotKillChildError:              "Waited three seconds for child process to stop. There may be an orphan process that continues to run on your system.",
 		CannotStartStop:                   "Cannot start stop this container",
 
-		Donate:  "Donate",
 		Confirm: "Confirm",
 
 		Return:                      "return",
@@ -222,13 +222,14 @@ func englishSet() TranslationSet {
 		OpenInBrowser:               "open in browser (first port is http)",
 		SortContainersByState:       "sort containers by state",
 		SwitchProject:               "switch project",
+		ToggleProjectMode:           "toggle project mode",
 
 		GlobalTitle:               "Global",
 		MainTitle:                 "Main",
-		ProjectTitle:              "Project",
+		ProjectTitle:              "Projects",
 		ServicesTitle:             "Services",
 		ContainersTitle:           "Containers",
-		StandaloneContainersTitle: "Standalone Containers",
+		StandaloneContainersTitle: "Containers",
 		ImagesTitle:               "Images",
 		VolumesTitle:              "Volumes",
 		NetworksTitle:             "Networks",
@@ -242,6 +243,7 @@ func englishSet() TranslationSet {
 		TopTitle:                  "Top",
 		StatsTitle:                "Stats",
 		CreditsTitle:              "About",
+		AboutTitle:                "About",
 		ContainerConfigTitle:      "Container Config",
 		ContainerEnvTitle:         "Container Env",
 		NothingToDisplay:          "Nothing to display",

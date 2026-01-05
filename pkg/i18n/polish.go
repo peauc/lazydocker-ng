@@ -16,7 +16,6 @@ func polishSet() TranslationSet {
 		CannotAttachStoppedContainerError: "Nie można przyczepić się do zatrzymanego kontenera, należy go najpierw uruchomić (co można wykonać wciskając przycisk 'r')",
 		CannotAccessDockerSocketError:     "Nie udało się uzyskać dostępu do unix:///var/run/docker.sock\nUruchom program jako root lub przeczytaj https://docs.docker.com/install/linux/linux-postinstall/",
 
-		Donate:  "Dotacja",
 		Confirm: "Potwierdź",
 
 		Return:             "powrót",

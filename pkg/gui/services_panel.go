@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/jesseduffield/gocui"
 	"github.com/peauc/lazydocker-ng/pkg/commands"
 	"github.com/peauc/lazydocker-ng/pkg/config"
@@ -78,8 +77,8 @@ func (gui *Gui) getServicesPanel() *panels.SideListPanel[*commands.Service] {
 			return presentation.GetServiceDisplayStrings(&gui.Config.UserConfig.Gui, service)
 		},
 		Hide: func() bool {
-			// Show only in operation mode AND docker compose projects
-			return gui.State.UIMode != MODE_OPERATION || !gui.DockerCommand.InDockerComposeProject
+			// Show only in container mode AND docker compose projects
+			return gui.State.UIMode != MODE_CONTAINERS || !gui.State.InDockerComposeMode
 		},
 	}
 }
@@ -131,16 +130,6 @@ func (gui *Gui) renderServiceLogs(service *commands.Service) tasks.TaskFunc {
 	}
 
 	return gui.renderContainerLogsToMain(service.Container)
-}
-
-type commandOption struct {
-	description string
-	command     string
-	onPress     func() error
-}
-
-func (r *commandOption) getDisplayStrings() []string {
-	return []string{r.description, color.New(color.FgCyan).Sprint(r.command)}
 }
 
 func (gui *Gui) handleServiceRemoveMenu(g *gocui.Gui, v *gocui.View) error {
@@ -287,73 +276,6 @@ func (gui *Gui) handleServiceRenderLogsToMain(g *gocui.Gui, v *gocui.View) error
 	}
 
 	return gui.runSubprocess(c)
-}
-
-func (gui *Gui) handleProjectUp(g *gocui.Gui, v *gocui.View) error {
-	return gui.createConfirmationPanel(gui.Tr.Confirm, gui.Tr.ConfirmUpProject, func(g *gocui.Gui, v *gocui.View) error {
-		cmdStr := utils.ApplyTemplate(
-			gui.Config.UserConfig.CommandTemplates.Up,
-			gui.DockerCommand.NewCommandObject(commands.CommandObject{}),
-		)
-
-		return gui.WithWaitingStatus(gui.Tr.UppingProjectStatus, func() error {
-			if err := gui.OSCommand.RunCommand(cmdStr); err != nil {
-				return gui.createErrorPanel(err.Error())
-			}
-			return nil
-		})
-	}, nil)
-}
-
-func (gui *Gui) handleProjectDown(g *gocui.Gui, v *gocui.View) error {
-	downCommand := utils.ApplyTemplate(
-		gui.Config.UserConfig.CommandTemplates.Down,
-		gui.DockerCommand.NewCommandObject(commands.CommandObject{}),
-	)
-
-	downWithVolumesCommand := utils.ApplyTemplate(
-		gui.Config.UserConfig.CommandTemplates.DownWithVolumes,
-		gui.DockerCommand.NewCommandObject(commands.CommandObject{}),
-	)
-
-	options := []*commandOption{
-		{
-			description: gui.Tr.Down,
-			command:     downCommand,
-			onPress: func() error {
-				return gui.WithWaitingStatus(gui.Tr.DowningStatus, func() error {
-					if err := gui.OSCommand.RunCommand(downCommand); err != nil {
-						return gui.createErrorPanel(err.Error())
-					}
-					return nil
-				})
-			},
-		},
-		{
-			description: gui.Tr.DownWithVolumes,
-			command:     downWithVolumesCommand,
-			onPress: func() error {
-				return gui.WithWaitingStatus(gui.Tr.DowningStatus, func() error {
-					if err := gui.OSCommand.RunCommand(downWithVolumesCommand); err != nil {
-						return gui.createErrorPanel(err.Error())
-					}
-					return nil
-				})
-			},
-		},
-	}
-
-	menuItems := lo.Map(options, func(option *commandOption, _ int) *types.MenuItem {
-		return &types.MenuItem{
-			LabelColumns: option.getDisplayStrings(),
-			OnPress:      option.onPress,
-		}
-	})
-
-	return gui.Menu(CreateMenuOptions{
-		Title: "",
-		Items: menuItems,
-	})
 }
 
 func (gui *Gui) handleServiceRestartMenu(g *gocui.Gui, v *gocui.View) error {

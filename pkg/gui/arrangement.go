@@ -21,6 +21,10 @@ func (gui *Gui) getWindowDimensions(informationStr string, appStatus string) map
 		return boxlayout.ArrangeWindows(&boxlayout.Box{Window: "limit"}, 0, 0, width, height)
 	}
 
+	if gui.Views.About.Visible {
+		return boxlayout.ArrangeWindows(&boxlayout.Box{Window: "about"}, 0, 0, width, height)
+	}
+
 	sideSectionWeight, mainSectionWeight := gui.getMidSectionWeights()
 
 	sidePanelsDirection := boxlayout.COLUMN
@@ -44,17 +48,23 @@ func (gui *Gui) getWindowDimensions(informationStr string, appStatus string) map
 				Weight:    1,
 				Children: []*boxlayout.Box{
 					{
-						Window: "mode_tabs",
-						Size:   1,
-					},
-					{
 						Direction: sidePanelsDirection,
 						Weight:    1,
 						Children: []*boxlayout.Box{
 							{
-								Direction:           boxlayout.ROW,
-								Weight:              sideSectionWeight,
-								ConditionalChildren: gui.sidePanelChildren,
+								Weight:    sideSectionWeight,
+								Direction: boxlayout.ROW,
+								Children: []*boxlayout.Box{
+									{
+										Window: "mode_tabs",
+										Size:   1,
+									},
+									{
+										Direction:           boxlayout.ROW,
+										Weight:              mainSectionWeight,
+										ConditionalChildren: gui.sidePanelChildren,
+									},
+								},
 							},
 							{
 								Window: "main",
@@ -189,14 +199,9 @@ func (gui *Gui) sidePanelChildren(width int, height int) []*boxlayout.Box {
 			return defaultBox
 		}
 
-		return append([]*boxlayout.Box{
-			{
-				Window: sideWindowNames[0],
-				Size:   3,
-			},
-		}, lo.Map(sideWindowNames[1:], func(window string, _ int) *boxlayout.Box {
+		return lo.Map(sideWindowNames, func(window string, _ int) *boxlayout.Box {
 			return accordionBox(&boxlayout.Box{Window: window, Weight: 1})
-		})...)
+		})
 	} else {
 		squashedHeight := 1
 		if height >= 21 {
