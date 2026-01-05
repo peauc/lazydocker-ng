@@ -39,16 +39,6 @@ builds:
         goarch: arm
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.buildSource=binaryRelease
-  - id: snap
-    goos:
-      - linux
-    goarch:
-      - amd64
-      - arm
-      - arm64
-      - 386
-    ldflags:
-      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.buildSource=snap
 
 archives:
   - id: binary
@@ -67,24 +57,6 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
     formats:
       - tar.gz
-    files:
-      - none*
-  - id: binary-zip
-    ids:
-      - binary
-    name_template: >-
-      {{ .ProjectName }}_
-      {{- .Version }}_
-      {{- if eq .Os "darwin" }}Darwin
-      {{- else if eq .Os "linux" }}Linux
-      {{- else if eq .Os "windows" }}Windows
-      {{- else }}{{ .Os }}{{ end }}_
-      {{- if eq .Arch "386" }}x86
-      {{- else if eq .Arch "amd64" }}x86_64
-      {{- else }}{{ .Arch }}{{ end }}
-      {{- if .Arm }}v{{ .Arm }}{{ end }}
-    formats:
-      - zip
     files:
       - none*
 
@@ -107,95 +79,21 @@ homebrew_casks:
       owner: peauc
       name: homebrew-lazydocker-ng
 
-    # Only include tar.gz archives for homebrew
-    ids:
-      - binary
-
-    # Your app's homepage.
-    # Default is empty.
     homepage: "https://github.com/peauc/lazydocker-ng/"
-
-    # Your app's description.
-    # Default is empty.
     description: "The continuation of lazydocker the simple terminal UI for docker, written in Go"
 
 # AUR (Arch User Repository) configuration
 aurs:
   - name: lazydocker-ng-bin
     homepage: "https://github.com/peauc/lazydocker-ng/"
+    git_url: "ssh://aur@aur.archlinux.org/lazydocker-ng-bin.git"
     description: "The continuation of lazydocker the simple terminal UI for docker, written in Go"
     maintainers:
       - "Clément PÉAU <clement dot peau at gmail dot com>"
     license: "MIT"
 
-    # SSH private key for AUR commits (set as environment variable)
     private_key: "{{ .Env.AUR_KEY }}"
-
-    # AUR git repository URL
-    git_url: "ssh://aur@aur.archlinux.org/lazydocker-ng-bin.git"
-
-    # Commit message template
     commit_msg_template: "Update to {{ .Tag }}"
-
-    # Git author info
     commit_author:
       name: goreleaserbot
       email: bot@goreleaser.com
-#snapcrafts:
-#  - builds:
-#      - snap
-#
-#    replacements:
-#      linux: Linux
-#      386: x86
-#      amd64: x86_64
-#
-#    # Wether to publish the snap to the snapcraft store.
-#    # Remember you need to `snapcraft login` first.
-#    # Defaults to false.
-#    publish: false
-#
-#    # Single-line elevator pitch for your amazing snap.
-#    # 79 char long at most.
-#    summary: The lazier way to manage everything docker
-#
-#    # This the description of your snap. You have a paragraph or two to tell the
-#    # most important story about your snap. Keep it under 100 words though,
-#    # we live in tweetspace and your description wants to look good in the snap
-#    # store.
-#    description: 'A simple terminal UI for docker, written in Go'
-#
-#    # A guardrail to prevent you from releasing a snap to all your users before
-#    # it is ready.
-#    # `devel` will let you release only to the `edge` and `beta` channels in the
-#    # store. `stable` will let you release also to the `candidate` and `stable`
-#    # channels. More info about channels here:
-#    # https://snapcraft.io/docs/reference/channels
-#    # TODO: reset to `stable` when we've been manually reviewed: https://forum.snapcraft.io/t/request-for-classic-confinement-for-lazydocker/12155
-#    grade: devel
-#
-#    # Snaps can be setup to follow three different confinement policies:
-#    # `strict`, `devmode` and `classic`. A strict confinement where the snap
-#    # can only read and write in its own namespace is recommended. Extra
-#    # permissions for strict snaps can be declared as `plugs` for the app, which
-#    # are explained later. More info about confinement here:
-#    # https://snapcraft.io/docs/reference/confinement
-#    confinement: classic
-#
-#    # Your app's license, based on SPDX license expressions: https://spdx.org/licenses
-#    # Default is empty.
-#    license: MIT
-#
-#    # # Each binary built by GoReleaser is an app inside the snap. In this section
-#    # # you can declare extra details for those binaries. It is optional.
-#    # apps:
-#
-#    #   # The name of the app must be the same name as the binary built or the snapcraft name.
-#    #   lazydocker:
-#
-#    #     # If your app requires extra permissions to work outside of its default
-#    #     # confined space, declare them here.
-#    #     # You can read the documentation about the available plugs and the
-#    #     # things they allow:
-#    #     # https://snapcraft.io/docs/reference/interfaces.
-#    #     plugs: []
