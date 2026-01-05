@@ -224,15 +224,10 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Description: gui.Tr.Close,
 		},
 		{
-			ViewName: "about",
-			Key:      'o',
-			Modifier: gocui.ModNone,
-			Handler: func(g *gocui.Gui, v *gocui.View) error {
-				if err := gui.handleCloseAboutPopup(); err != nil {
-					return err
-				}
-				return gui.openFile(gui.Config.ConfigFilename())
-			},
+			ViewName:    "about",
+			Key:         'o',
+			Modifier:    gocui.ModNone,
+			Handler:     gui.handleOpenConfig,
 			Description: gui.Tr.OpenConfig,
 		},
 		{
