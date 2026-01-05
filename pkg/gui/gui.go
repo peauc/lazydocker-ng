@@ -195,6 +195,7 @@ func (gui *Gui) renderGlobalOptions() error {
 		"← → ↑ ↓":   gui.Tr.Navigate,
 		"q":         gui.Tr.Quit,
 		"x":         gui.Tr.Menu,
+		"0":         gui.Tr.AboutTitle,
 	})
 }
 
@@ -205,6 +206,7 @@ func (gui *Gui) renderProjectOptions() error {
 		"← → ↑ ↓":   gui.Tr.Navigate,
 		"q":         gui.Tr.Quit,
 		"x":         gui.Tr.Menu,
+		"0":         gui.Tr.AboutTitle,
 	})
 }
 
