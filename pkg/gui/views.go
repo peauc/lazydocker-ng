@@ -3,7 +3,6 @@ package gui
 import (
 	"os"
 
-	"github.com/fatih/color"
 	"github.com/jesseduffield/gocui"
 	"github.com/samber/lo"
 )
@@ -52,6 +51,7 @@ type Views struct {
 	// popups
 	Confirmation *gocui.View
 	Menu         *gocui.View
+	About        *gocui.View
 
 	// will cover everything when it appears
 	Limit *gocui.View
@@ -90,7 +90,8 @@ func (gui *Gui) orderedViewNameMappings() []viewNameMapping {
 		{viewPtr: &gui.Views.Menu, name: "menu", autoPosition: false},
 		{viewPtr: &gui.Views.Confirmation, name: "confirmation", autoPosition: false},
 
-		// this guy will cover everything else when it appears
+		// full-screen views that cover everything when they appear
+		{viewPtr: &gui.Views.About, name: "about", autoPosition: true},
 		{viewPtr: &gui.Views.Limit, name: "limit", autoPosition: true},
 	}
 }
@@ -174,6 +175,9 @@ func (gui *Gui) createAllViews() error {
 	gui.Views.Menu.Visible = false
 	gui.Views.Menu.SelBgColor = selectedLineBgColor
 
+	gui.Views.About.Visible = false
+	gui.Views.About.Wrap = true
+
 	gui.Views.Limit.Visible = false
 	gui.Views.Limit.Title = gui.Tr.NotEnoughSpace
 	gui.Views.Limit.Wrap = true
@@ -202,18 +206,7 @@ func (gui *Gui) setInitialViewContent() error {
 }
 
 func (gui *Gui) getInformationContent() string {
-	informationStr := gui.Config.Version
-	if !gui.g.Mouse {
-		return informationStr
-	}
-
-	attrs := []color.Attribute{color.FgMagenta}
-	if !hideUnderScores() {
-		attrs = append(attrs, color.Underline)
-	}
-
-	donate := color.New(attrs...).Sprint(gui.Tr.Donate)
-	return donate + " " + informationStr
+	return gui.Config.Version
 }
 
 func (gui *Gui) popupViewNames() []string {

@@ -21,6 +21,10 @@ func (gui *Gui) getWindowDimensions(informationStr string, appStatus string) map
 		return boxlayout.ArrangeWindows(&boxlayout.Box{Window: "limit"}, 0, 0, width, height)
 	}
 
+	if gui.Views.About.Visible {
+		return boxlayout.ArrangeWindows(&boxlayout.Box{Window: "about"}, 0, 0, width, height)
+	}
+
 	sideSectionWeight, mainSectionWeight := gui.getMidSectionWeights()
 
 	sidePanelsDirection := boxlayout.COLUMN

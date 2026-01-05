@@ -24,7 +24,6 @@ func chineseSet() TranslationSet {
 		CannotAccessDockerSocketError:     "无法访问 Docker 套接字：unix:///var/run/docker.sock\n请以 root 用户身份运行 lazydocker 或阅读https://docs.docker.com/install/linux/linux-postinstall/",
 		CannotKillChildError:              "等待三秒钟以停止子进程。可能有一个孤儿进程在您的系统上继续运行。",
 
-		Donate:  "捐赠",
 		Confirm: "确认",
 
 		Return:            "返回",

@@ -16,7 +16,6 @@ func dutchSet() TranslationSet {
 		CannotAttachStoppedContainerError: "Je kan niet een vastgemaakte container stoppen, je moet het eerst starten (dit kan je doen met de 'r' toets) (ja ik ben te leu om dat voor je te doen automatisch)",
 		CannotAccessDockerSocketError:     "Kan de docker socket niet bereiken: unix:///var/run/docker.sock\nDraai lazydocker als root of lees https://docs.docker.com/install/linux/linux-postinstall/",
 
-		Donate:  "Doneer",
 		Confirm: "Bevestigen",
 
 		Return:             "terug",

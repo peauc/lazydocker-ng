@@ -28,7 +28,6 @@ type TranslationSet struct {
 	CannotKillChildError                       string
 	CannotStartStop                            string
 
-	Donate                      string
 	Cancel                      string
 	CustomCommandTitle          string
 	BulkCommandTitle            string
@@ -120,6 +119,7 @@ type TranslationSet struct {
 	DockerComposeConfigTitle  string
 	StatsTitle                string
 	CreditsTitle              string
+	AboutTitle                string
 	ContainerConfigTitle      string
 	ContainerEnvTitle         string
 	NothingToDisplay          string
@@ -166,7 +166,6 @@ func englishSet() TranslationSet {
 		CannotKillChildError:              "Waited three seconds for child process to stop. There may be an orphan process that continues to run on your system.",
 		CannotStartStop:                   "Cannot start stop this container",
 
-		Donate:  "Donate",
 		Confirm: "Confirm",
 
 		Return:                      "return",
@@ -244,6 +243,7 @@ func englishSet() TranslationSet {
 		TopTitle:                  "Top",
 		StatsTitle:                "Stats",
 		CreditsTitle:              "About",
+		AboutTitle:                "About",
 		ContainerConfigTitle:      "Container Config",
 		ContainerEnvTitle:         "Container Env",
 		NothingToDisplay:          "Nothing to display",

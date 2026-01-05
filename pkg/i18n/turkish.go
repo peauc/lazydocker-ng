@@ -16,7 +16,6 @@ func turkishSet() TranslationSet {
 		CannotAttachStoppedContainerError: "Durdurulan konteynera bağlanamazsınız, ilk önce başlatmanız gerekir (aslında başlatmayı r tuşu ile yapabilirsiniz) (evet, senin için bunu otomatik olarak yapabilirim fakat çok tembelim) (hata mesajı ile seninle birebir iletişim kurmam çok daha güzel)",
 		CannotAccessDockerSocketError:     "Docker' a şu adresten erişilemiyor : unix:///var/run/docker.sock\n lazydocker' ı root(kök kullanıcı) olarak çalıştır veya şu adresteki adımları takip et : https://docs.docker.com/install/linux/linux-postinstall/",
 
-		Donate:  "Bağış",
 		Confirm: "Onayla",
 
 		Return:             "dönüş",

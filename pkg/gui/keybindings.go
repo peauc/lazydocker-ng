@@ -63,6 +63,52 @@ func (gui *Gui) onlyInDockerComposeMode(handler func(*gocui.Gui, *gocui.View) er
 	}
 }
 
+// addScrollKeybindings returns keybindings for scrolling in a view
+func (gui *Gui) addScrollKeybindings(viewName string, scrollUpHandler, scrollDownHandler func(*gocui.Gui, *gocui.View) error) []*Binding {
+	return []*Binding{
+		{ViewName: viewName, Key: gocui.KeyArrowUp, Modifier: gocui.ModNone, Handler: scrollUpHandler},
+		{ViewName: viewName, Key: gocui.KeyArrowDown, Modifier: gocui.ModNone, Handler: scrollDownHandler},
+		{ViewName: viewName, Key: gocui.KeyPgup, Modifier: gocui.ModNone, Handler: scrollUpHandler},
+		{ViewName: viewName, Key: gocui.KeyPgdn, Modifier: gocui.ModNone, Handler: scrollDownHandler},
+		{ViewName: viewName, Key: 'k', Modifier: gocui.ModNone, Handler: scrollUpHandler},
+		{ViewName: viewName, Key: 'j', Modifier: gocui.ModNone, Handler: scrollDownHandler},
+		{ViewName: viewName, Key: gocui.MouseWheelUp, Modifier: gocui.ModNone, Handler: scrollUpHandler},
+		{ViewName: viewName, Key: gocui.MouseWheelDown, Modifier: gocui.ModNone, Handler: scrollDownHandler},
+	}
+}
+
+// addCloseAndNavigateKeybindings returns keybindings that close a view and navigate to panels
+func (gui *Gui) addCloseAndNavigateKeybindings(viewName string, closeHandler func() error) []*Binding {
+	closeAndGo := func(targetView *gocui.View) func(*gocui.Gui, *gocui.View) error {
+		return func(g *gocui.Gui, v *gocui.View) error {
+			if err := closeHandler(); err != nil {
+				return err
+			}
+			return gui.handleGoTo(targetView)(g, v)
+		}
+	}
+
+	return []*Binding{
+		{ViewName: viewName, Key: '1', Modifier: gocui.ModNone, Handler: closeAndGo(gui.Panels.Projects.View)},
+		{ViewName: viewName, Key: '2', Modifier: gocui.ModNone, Handler: closeAndGo(gui.Panels.Services.View)},
+		{ViewName: viewName, Key: '3', Modifier: gocui.ModNone, Handler: closeAndGo(gui.Panels.Containers.View)},
+		{ViewName: viewName, Key: '4', Modifier: gocui.ModNone, Handler: closeAndGo(gui.Panels.Images.View)},
+		{ViewName: viewName, Key: '5', Modifier: gocui.ModNone, Handler: closeAndGo(gui.Panels.Volumes.View)},
+		{ViewName: viewName, Key: '6', Modifier: gocui.ModNone, Handler: closeAndGo(gui.Panels.Networks.View)},
+		{
+			ViewName: viewName,
+			Key:      gocui.KeyTab,
+			Modifier: gocui.ModNone,
+			Handler: func(g *gocui.Gui, v *gocui.View) error {
+				if err := closeHandler(); err != nil {
+					return err
+				}
+				return gui.handleToggleMode(g, v)
+			},
+		},
+	}
+}
+
 // GetInitialKeybindings is a function.
 func (gui *Gui) GetInitialKeybindings() []*Binding {
 	bindings := []*Binding{
@@ -153,6 +199,43 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Description: gui.Tr.ToggleProjectMode,
 		},
 		{
+			ViewName:    "",
+			Key:         '0',
+			Modifier:    gocui.ModNone,
+			Handler:     gui.handleOpenAboutPopup,
+			Description: gui.Tr.AboutTitle,
+		},
+		{
+			ViewName: "about",
+			Key:      gocui.KeyEsc,
+			Modifier: gocui.ModNone,
+			Handler: func(g *gocui.Gui, v *gocui.View) error {
+				return gui.handleCloseAboutPopup()
+			},
+			Description: gui.Tr.Close,
+		},
+		{
+			ViewName: "about",
+			Key:      'q',
+			Modifier: gocui.ModNone,
+			Handler: func(g *gocui.Gui, v *gocui.View) error {
+				return gui.handleCloseAboutPopup()
+			},
+			Description: gui.Tr.Close,
+		},
+		{
+			ViewName: "about",
+			Key:      'o',
+			Modifier: gocui.ModNone,
+			Handler: func(g *gocui.Gui, v *gocui.View) error {
+				if err := gui.handleCloseAboutPopup(); err != nil {
+					return err
+				}
+				return gui.openFile(gui.Config.ConfigFilename())
+			},
+			Description: gui.Tr.OpenConfig,
+		},
+		{
 			ViewName:    "project",
 			Key:         'e',
 			Modifier:    gocui.ModNone,
@@ -209,12 +292,6 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Key:      'y',
 			Modifier: gocui.ModNone,
 			Handler:  wrappedHandler(gui.handleMenuPress),
-		},
-		{
-			ViewName: "information",
-			Key:      gocui.MouseLeft,
-			Modifier: gocui.ModNone,
-			Handler:  gui.handleDonate,
 		},
 		{
 			ViewName:    "containers",
@@ -573,6 +650,10 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 		{Handler: gui.handleGoTo(gui.Panels.Volumes.View), Key: '5', Description: gui.Tr.FocusVolumes},
 		{Handler: gui.handleGoTo(gui.Panels.Networks.View), Key: '6', Description: gui.Tr.FocusNetworks},
 	}...)
+
+	// Add common keybindings for About view
+	bindings = append(bindings, gui.addScrollKeybindings("about", gui.scrollUpAbout, gui.scrollDownAbout)...)
+	bindings = append(bindings, gui.addCloseAndNavigateKeybindings("about", gui.handleCloseAboutPopup)...)
 
 	for _, panel := range gui.allListPanels() {
 		setUpDownClickBindings(panel.GetView().Name(), panel.HandlePrevLine, panel.HandleNextLine, panel.HandleClick)

@@ -236,6 +236,8 @@ func (gui *Gui) renderPanelOptions() error {
 		return gui.renderMenuOptions()
 	case "confirmation":
 		return gui.renderConfirmationOptions()
+	case "about":
+		return gui.renderAboutOptions()
 	case "project":
 		return gui.renderProjectOptions()
 	}

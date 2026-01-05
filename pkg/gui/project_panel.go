@@ -1,17 +1,14 @@
 package gui
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"path"
-	"strings"
 
 	"github.com/peauc/lazydocker-ng/pkg/gui/types"
 
 	"github.com/fatih/color"
 	"github.com/jesseduffield/gocui"
-	"github.com/jesseduffield/yaml"
 	"github.com/peauc/lazydocker-ng/pkg/commands"
 	"github.com/peauc/lazydocker-ng/pkg/gui/panels"
 	"github.com/peauc/lazydocker-ng/pkg/gui/presentation"
@@ -39,21 +36,10 @@ func (gui *Gui) getProjectPanel() *panels.SideListPanel[*commands.Project] {
 							Title:  gui.Tr.DockerComposeConfigTitle,
 							Render: gui.renderDockerComposeConfig,
 						},
-						{
-							Key:    "credits",
-							Title:  gui.Tr.CreditsTitle,
-							Render: gui.renderCredits,
-						},
 					}
 				}
 
-				return []panels.MainTab[*commands.Project]{
-					{
-						Key:    "credits",
-						Title:  gui.Tr.CreditsTitle,
-						Render: gui.renderCredits,
-					},
-				}
+				return []panels.MainTab[*commands.Project]{}
 			},
 			GetItemContextCacheKey: func(project *commands.Project) string {
 				return "projects-" + project.Name
@@ -148,27 +134,6 @@ func (gui *Gui) GetProjectName() string {
 	return path.Base(gui.Config.ProjectDir)
 }
 
-func (gui *Gui) renderCredits(_project *commands.Project) tasks.TaskFunc {
-	return gui.NewSimpleRenderStringTask(func() string { return gui.creditsStr() })
-}
-
-func (gui *Gui) creditsStr() string {
-	var configBuf bytes.Buffer
-	_ = yaml.NewEncoder(&configBuf, yaml.IncludeOmitted).Encode(gui.Config.UserConfig)
-
-	return strings.Join(
-		[]string{
-			lazydockerTitle(),
-			"Copyright (c) 2019 Jesse Duffield",
-			"Keybindings: https://github.com/peauc/lazydocker-ng/blob/master/docs/keybindings",
-			"Config Options: https://github.com/peauc/lazydocker-ng/blob/master/docs/Config.md",
-			"Raise an Issue: https://github.com/peauc/lazydocker-ng/issues",
-			utils.ColoredString("Buy Jesse a coffee: https://github.com/sponsors/jesseduffield", color.FgMagenta), // caffeine ain't free
-			"Here's your lazydocker config when merged in with the defaults (you can open your config by pressing 'o'):",
-			utils.ColoredYamlString(configBuf.String()),
-		}, "\n\n")
-}
-
 func (gui *Gui) renderAllLogs(project *commands.Project) tasks.TaskFunc {
 	return gui.NewTask(TaskOpts{
 		Autoscroll: true,
@@ -239,19 +204,6 @@ func (gui *Gui) handleOpenConfig(g *gocui.Gui, v *gocui.View) error {
 
 func (gui *Gui) handleEditConfig(g *gocui.Gui, v *gocui.View) error {
 	return gui.editFile(gui.Config.ConfigFilename())
-}
-
-func lazydockerTitle() string {
-	return `
-   _                     _            _
-  | |                   | |          | |
-  | | __ _ _____   _  __| | ___   ___| | _____ _ __
-  | |/ _` + "`" + ` |_  / | | |/ _` + "`" + ` |/ _ \ / __| |/ / _ \ '__|
-  | | (_| |/ /| |_| | (_| | (_) | (__|   <  __/ |
-  |_|\__,_/___|\__, |\__,_|\___/ \___|_|\_\___|_|
-                __/ |
-               |___/
-`
 }
 
 // handleViewAllLogs switches to a subprocess viewing all the logs from docker-compose
