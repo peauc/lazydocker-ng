@@ -236,7 +236,7 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Description: gui.Tr.OpenConfig,
 		},
 		{
-			ViewName:    "project",
+			ViewName:    "about",
 			Key:         'e',
 			Modifier:    gocui.ModNone,
 			Handler:     gui.handleEditConfig,

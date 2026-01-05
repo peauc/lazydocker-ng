@@ -103,7 +103,7 @@ func (gui *Gui) getAboutContent() string {
 			"Keybindings: https://github.com/peauc/lazydocker-ng/blob/master/docs/keybindings",
 			"Config Options: https://github.com/peauc/lazydocker-ng/blob/master/docs/Config.md",
 			"Raise an Issue: https://github.com/peauc/lazydocker-ng/issues",
-			"Here's your lazydocker config when merged in with the defaults (you can open your config by pressing 'o'):",
+			"Here's your lazydocker config when merged in with the defaults (you can open your config by pressing 'e' for terminal edit or 'o' for graphical edit):",
 			utils.ColoredYamlString(configBuf.String()),
 			"Copyright (c) 2019 Jesse Duffield",
 		}, "\n\n")

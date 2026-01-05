@@ -7,6 +7,7 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
 <pre>
   <kbd>	</kbd>: Toggle Mode
   <kbd>P</kbd>: toggle project mode
+  <kbd>0</kbd>: About
   <kbd>+</kbd>: next screen mode (normal/half/fullscreen)
   <kbd>_</kbd>: prev screen mode
   <kbd>1</kbd>: focus projects panel
@@ -17,12 +18,19 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
   <kbd>6</kbd>: focus networks panel
 </pre>
 
+## 
+
+<pre>
+  <kbd>esc</kbd>: zamknij
+  <kbd>q</kbd>: zamknij
+  <kbd>o</kbd>: otwórz konfigurację
+  <kbd>e</kbd>: edytuj konfigurację
+</pre>
+
 ## Projekt
 
 <pre>
-  <kbd>e</kbd>: edytuj konfigurację
   <kbd>space</kbd>: switch project
-  <kbd>o</kbd>: otwórz konfigurację
   <kbd>m</kbd>: pokaż logi
   <kbd>U</kbd>: up project
   <kbd>D</kbd>: down project

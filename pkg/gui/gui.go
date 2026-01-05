@@ -132,7 +132,7 @@ const (
 type UIMode int
 
 const (
-	MODE_CONTAINERS  UIMode = iota // Projects, Services, Containers
+	MODE_CONTAINERS UIMode = iota // Projects, Services, Containers
 	MODE_RESSOURCES               // Images, Volumes, Networks
 )
 
@@ -166,7 +166,7 @@ func NewGui(log *logrus.Entry, dockerCommand *commands.DockerCommand, oSCommand 
 		// Initialize UI mode system
 		UIMode: MODE_CONTAINERS,
 		LastFocusedPanel: map[UIMode]string{
-			MODE_CONTAINERS:  "",
+			MODE_CONTAINERS: "",
 			MODE_RESSOURCES: "",
 		},
 	}

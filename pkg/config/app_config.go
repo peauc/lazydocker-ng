@@ -2,7 +2,7 @@
 // all in PascalCase but in your actual config.yml they'll be in camelCase.
 // You can view the default config with `lazydocker --config`.
 // You can open your config file by going to the status panel (using left-arrow)
-// and pressing 'o'.
+// and pressing 'e'.
 // You can directly edit the file (e.g. in vim) by pressing 'e' instead.
 // To see the final config after your user-specific options have been merged
 // with the defaults, go to the 'about' tab in the status panel.

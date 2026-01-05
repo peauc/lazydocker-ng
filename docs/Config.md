@@ -2,7 +2,7 @@
 
 ## Opening The User Config
 
-The location of the user config will differ depending on your OS. You can open it via lazydocker by opening the application, clicking on the 'project' panel at the top left and pressing 'o' (or pressing 'e' if your files open in vim).
+The location of the user config will differ depending on your OS. You can open it via lazydocker by opening the application, clicking on the 'project' panel at the top left and pressing 'o' for graphical edit or pressing 'e' for terminal edit.
 
 Changes to the user config will only take place after closing and re-opening lazydocker
 

@@ -1,28 +1,9 @@
 package gui
 
 import (
-	"os"
-
 	"github.com/jesseduffield/gocui"
 	"github.com/samber/lo"
 )
-
-// See https://github.com/xtermjs/xterm.js/issues/4238
-// VSCode is soon to fix this in an upcoming update.
-// Once that's done, we can scrap the HIDE_UNDERSCORES variable
-var (
-	underscoreEnvChecked bool
-	hideUnderscores      bool
-)
-
-func hideUnderScores() bool {
-	if !underscoreEnvChecked {
-		hideUnderscores = os.Getenv("TERM_PROGRAM") == "vscode"
-		underscoreEnvChecked = true
-	}
-
-	return hideUnderscores
-}
 
 type Views struct {
 	// mode tabs
