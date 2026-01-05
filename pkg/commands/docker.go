@@ -27,10 +27,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	dockerHostEnvKey = "DOCKER_HOST"
-)
-
 // DockerCommand is our main docker interface
 type DockerCommand struct {
 	Log            *logrus.Entry
