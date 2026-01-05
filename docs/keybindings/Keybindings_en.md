@@ -6,6 +6,7 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
 
 <pre>
   <kbd>	</kbd>: Toggle Mode
+  <kbd>P</kbd>: toggle project mode
   <kbd>+</kbd>: next screen mode (normal/half/fullscreen)
   <kbd>_</kbd>: prev screen mode
   <kbd>1</kbd>: focus projects panel
@@ -16,13 +17,15 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
   <kbd>6</kbd>: focus networks panel
 </pre>
 
-## Project
+## Projects
 
 <pre>
   <kbd>e</kbd>: edit lazydocker config
-  <kbd>P</kbd>: switch project
+  <kbd>space</kbd>: switch project
   <kbd>o</kbd>: open lazydocker config
   <kbd>m</kbd>: view logs
+  <kbd>U</kbd>: up project
+  <kbd>D</kbd>: down project
   <kbd>enter</kbd>: focus main panel
   <kbd>[</kbd>: previous tab
   <kbd>]</kbd>: next tab
@@ -60,8 +63,6 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
   <kbd>S</kbd>: start
   <kbd>a</kbd>: attach
   <kbd>m</kbd>: view logs
-  <kbd>U</kbd>: up project
-  <kbd>D</kbd>: down project
   <kbd>R</kbd>: view restart options
   <kbd>c</kbd>: run predefined custom command
   <kbd>b</kbd>: view bulk commands

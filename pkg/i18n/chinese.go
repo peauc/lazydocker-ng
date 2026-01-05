@@ -85,7 +85,7 @@ func chineseSet() TranslationSet {
 		ProjectTitle:              "项目",
 		ServicesTitle:             "服务",
 		ContainersTitle:           "容器",
-		StandaloneContainersTitle: "独立容器",
+		StandaloneContainersTitle: "容器",
 		ImagesTitle:               "镜像",
 		VolumesTitle:              "卷",
 		NetworksTitle:             "网络",

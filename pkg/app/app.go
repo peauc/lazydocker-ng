@@ -59,18 +59,18 @@ func NewApp(config *config.AppConfig) (*App, error) {
 	)
 	err = app.OSCommand.RunCommand(checkCmd)
 	if err != nil {
-		app.DockerCommand.InDockerComposeProject = false
+		app.Gui.State.InDockerComposeMode = false
 		app.Log.Warnf("Not in docker compose project (working dir: %s, command: '%s', error: %v)",
 			config.ProjectDir, checkCmd, err)
 	} else {
 		app.Log.Infof("Detected docker compose project in: %s", config.ProjectDir)
+		app.Gui.State.InDockerComposeMode = true
 		app.Gui.State.Project = &commands.Project{
 			Name:            app.Gui.GetProjectName(),
 			IsDockerCompose: true,
 		}
 	}
 
-	app.DockerCommand.StartedInDockerComposeProject = app.DockerCommand.InDockerComposeProject
 	return app, nil
 }
 

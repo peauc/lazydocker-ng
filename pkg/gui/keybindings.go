@@ -53,6 +53,16 @@ func (b *Binding) GetKey() string {
 	return fmt.Sprintf("%c", key)
 }
 
+// onlyInDockerComposeMode wraps a handler to only execute when in docker compose mode
+func (gui *Gui) onlyInDockerComposeMode(handler func(*gocui.Gui, *gocui.View) error) func(*gocui.Gui, *gocui.View) error {
+	return func(g *gocui.Gui, v *gocui.View) error {
+		if !gui.State.InDockerComposeMode {
+			return nil
+		}
+		return handler(g, v)
+	}
+}
+
 // GetInitialKeybindings is a function.
 func (gui *Gui) GetInitialKeybindings() []*Binding {
 	bindings := []*Binding{
@@ -134,6 +144,13 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Modifier:    gocui.ModNone,
 			Handler:     gui.handleToggleMode,
 			Description: "Toggle Mode",
+		},
+		{
+			ViewName:    "",
+			Key:         'P',
+			Modifier:    gocui.ModNone,
+			Handler:     gui.handleToggleProjectMode,
+			Description: gui.Tr.ToggleProjectMode,
 		},
 		{
 			ViewName:    "project",
@@ -333,14 +350,14 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Description: gui.Tr.ViewLogs,
 		},
 		{
-			ViewName:    "services",
+			ViewName:    "project",
 			Key:         'U',
 			Modifier:    gocui.ModNone,
 			Handler:     gui.handleProjectUp,
 			Description: gui.Tr.UpProject,
 		},
 		{
-			ViewName:    "services",
+			ViewName:    "project",
 			Key:         'D',
 			Modifier:    gocui.ModNone,
 			Handler:     gui.handleProjectDown,
@@ -549,8 +566,8 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 	}
 
 	bindings = append(bindings, []*Binding{
-		{Handler: gui.handleGoTo(gui.Panels.Projects.View), Key: '1', Description: gui.Tr.FocusProjects},
-		{Handler: gui.handleGoTo(gui.Panels.Services.View), Key: '2', Description: gui.Tr.FocusServices},
+		{Handler: gui.onlyInDockerComposeMode(gui.handleGoTo(gui.Panels.Projects.View)), Key: '1', Description: gui.Tr.FocusProjects},
+		{Handler: gui.onlyInDockerComposeMode(gui.handleGoTo(gui.Panels.Services.View)), Key: '2', Description: gui.Tr.FocusServices},
 		{Handler: gui.handleGoTo(gui.Panels.Containers.View), Key: '3', Description: gui.Tr.FocusContainers},
 		{Handler: gui.handleGoTo(gui.Panels.Images.View), Key: '4', Description: gui.Tr.FocusImages},
 		{Handler: gui.handleGoTo(gui.Panels.Volumes.View), Key: '5', Description: gui.Tr.FocusVolumes},

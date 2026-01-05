@@ -86,12 +86,16 @@ func (gui *Gui) getContainersPanel() *panels.SideListPanel[*commands.Container] 
 			return sortContainers(a, b, gui.Config.UserConfig.Gui.LegacySortContainers)
 		},
 		Filter: func(container *commands.Container) bool {
+			if !gui.State.InDockerComposeMode {
+				return true
+			}
+
 			if gui.State.Project != nil && !gui.State.Project.IsDockerCompose {
 				if container.ProjectName != gui.State.Project.Name {
 					return false
 				}
 			} else {
-				if !gui.Config.UserConfig.Gui.ShowAllContainers && !isStandaloneContainer(container) {
+				if !isStandaloneContainer(container) {
 					return false
 				}
 			}
@@ -106,7 +110,7 @@ func (gui *Gui) getContainersPanel() *panels.SideListPanel[*commands.Container] 
 			return presentation.GetContainerDisplayStrings(&gui.Config.UserConfig.Gui, container)
 		},
 		Hide: func() bool {
-			return gui.State.UIMode != MODE_CONTAINER
+			return gui.State.UIMode != MODE_CONTAINERS
 		},
 	}
 }
@@ -293,7 +297,7 @@ func (gui *Gui) refreshContainersAndServices() error {
 }
 
 func (gui *Gui) renderContainersAndServices() error {
-	if gui.DockerCommand.InDockerComposeProject {
+	if gui.State.InDockerComposeMode {
 		if err := gui.Panels.Services.RerenderList(); err != nil {
 			return err
 		}

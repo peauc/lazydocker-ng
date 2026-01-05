@@ -98,13 +98,6 @@ type GuiConfig struct {
 	// recommended finding a combination that works for you
 	Theme ThemeConfig `yaml:"theme,omitempty"`
 
-	// ShowAllContainers determines whether the Containers panel contains all the
-	// containers returned by `docker ps -a`, or just those containers that aren't
-	// directly linked to a service. It is probably desirable to enable this if
-	// you have multiple containers per service, but otherwise it can cause a lot
-	// of clutter
-	ShowAllContainers bool `yaml:"showAllContainers,omitempty"`
-
 	// ReturnImmediately determines whether you get the 'press enter to return to
 	// lazydocker' message after a subprocess has completed. You would set this to
 	// true if you often want to see the output of subprocesses before returning
@@ -371,7 +364,6 @@ func GetDefaultConfig() UserConfig {
 				SelectedLineBgColor: []string{"blue"},
 				OptionsTextColor:    []string{"blue"},
 			},
-			ShowAllContainers:          false,
 			ReturnImmediately:          false,
 			WrapMainPanel:              true,
 			LegacySortContainers:       false,

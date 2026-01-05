@@ -6,6 +6,7 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
 
 <pre>
   <kbd>	</kbd>: Toggle Mode
+  <kbd>P</kbd>: toggle project mode
   <kbd>+</kbd>: 下一个屏幕模式（正常/半屏/全屏）
   <kbd>_</kbd>: 上一个屏幕模式
   <kbd>1</kbd>: focus projects panel
@@ -20,9 +21,11 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
 
 <pre>
   <kbd>e</kbd>: 编辑lazydocker配置
-  <kbd>P</kbd>: switch project
+  <kbd>space</kbd>: switch project
   <kbd>o</kbd>: 打开lazydocker配置
   <kbd>m</kbd>: 查看日志
+  <kbd>U</kbd>: 创建并启动容器
+  <kbd>D</kbd>: 停止并移除容器
   <kbd>enter</kbd>: 聚焦主面板
   <kbd>[</kbd>: 上一个选项卡
   <kbd>]</kbd>: 下一个选项卡
@@ -60,8 +63,6 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
   <kbd>S</kbd>: 启动项目
   <kbd>a</kbd>: attach
   <kbd>m</kbd>: 查看日志
-  <kbd>U</kbd>: 创建并启动容器
-  <kbd>D</kbd>: 停止并移除容器
   <kbd>R</kbd>: 查看重启选项
   <kbd>c</kbd>: 运行预定义的自定义命令
   <kbd>b</kbd>: 查看批量命令

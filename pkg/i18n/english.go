@@ -112,6 +112,7 @@ type TranslationSet struct {
 	OpenInBrowser               string
 	SortContainersByState       string
 	SwitchProject               string
+	ToggleProjectMode           string
 
 	LogsTitle                 string
 	ConfigTitle               string
@@ -222,13 +223,14 @@ func englishSet() TranslationSet {
 		OpenInBrowser:               "open in browser (first port is http)",
 		SortContainersByState:       "sort containers by state",
 		SwitchProject:               "switch project",
+		ToggleProjectMode:           "toggle project mode",
 
 		GlobalTitle:               "Global",
 		MainTitle:                 "Main",
-		ProjectTitle:              "Project",
+		ProjectTitle:              "Projects",
 		ServicesTitle:             "Services",
 		ContainersTitle:           "Containers",
-		StandaloneContainersTitle: "Standalone Containers",
+		StandaloneContainersTitle: "Containers",
 		ImagesTitle:               "Images",
 		VolumesTitle:              "Volumes",
 		NetworksTitle:             "Networks",

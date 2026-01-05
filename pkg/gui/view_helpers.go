@@ -236,6 +236,8 @@ func (gui *Gui) renderPanelOptions() error {
 		return gui.renderMenuOptions()
 	case "confirmation":
 		return gui.renderConfirmationOptions()
+	case "project":
+		return gui.renderProjectOptions()
 	}
 	return gui.renderGlobalOptions()
 }
@@ -398,18 +400,6 @@ func (gui *Gui) getLastFocusedPanelForCurrentMode() string {
 	return gui.State.LastFocusedPanel[gui.State.UIMode]
 }
 
-func (gui *Gui) switchToNextMode() {
-	if gui.State.UIMode == MODE_CONTAINER {
-		gui.State.UIMode = MODE_RESSOURCES
-	} else {
-		gui.State.UIMode = MODE_CONTAINER
-	}
-}
-
-func (gui *Gui) switchToPreviousMode() {
-	gui.switchToNextMode() // Same as next since only 2 modes
-}
-
 func (gui *Gui) isPanelVisible(viewName string) bool {
 	sideViewNames := gui.sideViewNames()
 	for _, name := range sideViewNames {
@@ -423,7 +413,7 @@ func (gui *Gui) isPanelVisible(viewName string) bool {
 func (gui *Gui) getModeForPanel(viewName string) UIMode {
 	switch viewName {
 	case "project", "services", "containers":
-		return MODE_CONTAINER
+		return MODE_CONTAINERS
 	case "images", "volumes", "networks":
 		return MODE_RESSOURCES
 	default:
@@ -470,10 +460,10 @@ func (gui *Gui) switchToMode(targetMode UIMode) error {
 func (gui *Gui) toggleMode() error {
 	gui.Log.Info("Toggling mode")
 	var targetMode UIMode
-	if gui.State.UIMode == MODE_CONTAINER {
+	if gui.State.UIMode == MODE_CONTAINERS {
 		targetMode = MODE_RESSOURCES
 	} else {
-		targetMode = MODE_CONTAINER
+		targetMode = MODE_CONTAINERS
 	}
 	return gui.switchToMode(targetMode)
 }

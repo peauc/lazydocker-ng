@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"path"
 	"strings"
-	"time"
 
-	"github.com/docker/docker/api/types/container"
 	"github.com/peauc/lazydocker-ng/pkg/gui/types"
 
 	"github.com/fatih/color"
@@ -19,6 +17,7 @@ import (
 	"github.com/peauc/lazydocker-ng/pkg/gui/presentation"
 	"github.com/peauc/lazydocker-ng/pkg/tasks"
 	"github.com/peauc/lazydocker-ng/pkg/utils"
+	"github.com/samber/lo"
 )
 
 // Although at the moment we'll only have one project, in future we could have
@@ -28,7 +27,7 @@ func (gui *Gui) getProjectPanel() *panels.SideListPanel[*commands.Project] {
 	return &panels.SideListPanel[*commands.Project]{
 		ContextState: &panels.ContextState[*commands.Project]{
 			GetMainTabs: func() []panels.MainTab[*commands.Project] {
-				if gui.DockerCommand.InDockerComposeProject {
+				if gui.State.InDockerComposeMode {
 					return []panels.MainTab[*commands.Project]{
 						{
 							Key:    "logs",
@@ -82,83 +81,25 @@ func (gui *Gui) getProjectPanel() *panels.SideListPanel[*commands.Project] {
 			return gui.handleProjectSelect(nil, nil)
 		},
 		Hide: func() bool {
-			return gui.State.UIMode != MODE_CONTAINER
+			return gui.State.UIMode != MODE_CONTAINERS || !gui.State.InDockerComposeMode
 		},
 	}
 }
 
 func (gui *Gui) refreshProjects() error {
-	containers, err := gui.DockerCommand.Client.ContainerList(context.Background(), container.ListOptions{All: true})
+	// Get containers using the commands layer
+	currentContainers := gui.Panels.Containers.List.GetItems()
+	containers, err := gui.DockerCommand.GetContainers(currentContainers)
 	if err != nil {
 		return err
 	}
 
-	projectsMap := make(map[string]*commands.Project)
-	servicesPerProject := make(map[string]map[string]bool)
-
-	// Build project info from containers
-	for _, container := range containers {
-		projectName, exists := container.Labels["com.docker.compose.project"]
-		if !exists || projectName == "" {
-			continue
-		}
-
-		if _, ok := projectsMap[projectName]; !ok {
-			projectsMap[projectName] = &commands.Project{
-				Name:            projectName,
-				IsDockerCompose: true,
-				Status:          "unknown",
-				LastUpdated:     time.Now(),
-			}
-			servicesPerProject[projectName] = make(map[string]bool)
-		}
-
-		project := projectsMap[projectName]
-		project.ContainerCount++
-
-		if container.State == "running" {
-			project.RunningCount++
-		}
-
-		if project.Path == "" {
-			if workingDir, ok := container.Labels["com.docker.compose.project.working_dir"]; ok {
-				project.Path = workingDir
-			}
-		}
-
-		if serviceName, ok := container.Labels["com.docker.compose.service"]; ok && serviceName != "" {
-			servicesPerProject[projectName][serviceName] = true
-		}
-	}
-
-	projectsList := make([]*commands.Project, 0, len(projectsMap))
-	for _, project := range projectsMap {
-		projectsList = append(projectsList, project)
-	}
-
-	if gui.DockerCommand.StartedInDockerComposeProject {
-		currentDirProjectName := path.Base(gui.Config.ProjectDir)
-		if _, exists := projectsMap[currentDirProjectName]; !exists {
-			projectsList = append(projectsList, &commands.Project{
-				Name:            currentDirProjectName,
-				Path:            gui.Config.ProjectDir,
-				IsDockerCompose: true,
-				Status:          "not created",
-			})
-		}
-	}
-
-	for _, project := range projectsMap {
-		if project.RunningCount == 0 {
-			project.Status = "stopped"
-		} else if project.RunningCount == project.ContainerCount {
-			project.Status = "running"
-		} else {
-			project.Status = "mixed"
-		}
-
-		project.ServiceCount = len(servicesPerProject[project.Name])
-	}
+	// Use the commands layer to extract projects from containers
+	projectsList := gui.DockerCommand.GetProjects(
+		containers,
+		gui.Config.ProjectDir,
+		gui.State.InDockerComposeMode,
+	)
 
 	gui.Panels.Projects.SetItems(projectsList)
 	return gui.Panels.Projects.RerenderList()
@@ -174,9 +115,7 @@ func (gui *Gui) handleProjectSelect(g *gocui.Gui, v *gocui.View) error {
 	gui.Log.Info("Selected project: " + project.Name)
 
 	gui.State.Project = project
-
-	gui.DockerCommand.CurrentDockerComposeProject = project.Name
-	gui.DockerCommand.InDockerComposeProject = project.IsDockerCompose
+	gui.State.CurrentDockerComposeProject = project.Name
 
 	if err := gui.refreshContainersAndServices(); err != nil {
 		gui.Log.Error(err)
@@ -230,7 +169,7 @@ func (gui *Gui) creditsStr() string {
 		}, "\n\n")
 }
 
-func (gui *Gui) renderAllLogs(_project *commands.Project) tasks.TaskFunc {
+func (gui *Gui) renderAllLogs(project *commands.Project) tasks.TaskFunc {
 	return gui.NewTask(TaskOpts{
 		Autoscroll: true,
 		Wrap:       gui.Config.UserConfig.Gui.WrapMainPanel,
@@ -240,7 +179,7 @@ func (gui *Gui) renderAllLogs(_project *commands.Project) tasks.TaskFunc {
 			cmd := gui.OSCommand.RunCustomCommand(
 				utils.ApplyTemplate(
 					gui.Config.UserConfig.CommandTemplates.AllLogs,
-					gui.DockerCommand.NewCommandObject(commands.CommandObject{}),
+					gui.DockerCommand.NewCommandObjectWithProjectName(project),
 				),
 			)
 
@@ -265,7 +204,6 @@ func (gui *Gui) renderAllLogs(_project *commands.Project) tasks.TaskFunc {
 func (gui *Gui) renderDockerComposeConfig(project *commands.Project) tasks.TaskFunc {
 	return gui.NewSimpleRenderStringTask(func() string {
 		output, err := gui.DockerCommand.DockerComposeConfigForProjectWithError(project.Path)
-
 		if err != nil {
 			if commands.IsDockerComposeFileNotFoundError(err) {
 				return fmt.Sprintf("%s\n\n%s\n%s",
@@ -318,32 +256,114 @@ func lazydockerTitle() string {
 
 // handleViewAllLogs switches to a subprocess viewing all the logs from docker-compose
 func (gui *Gui) handleViewAllLogs(g *gocui.Gui, v *gocui.View) error {
-	c, err := gui.DockerCommand.ViewAllLogs()
+	project, err := gui.Panels.Projects.GetSelectedItem()
 	if err != nil {
-		return gui.createErrorPanel(err.Error())
+		return nil
 	}
+
+	cmdStr := utils.ApplyTemplate(
+		gui.Config.UserConfig.CommandTemplates.ViewAllLogs,
+		gui.DockerCommand.NewCommandObjectWithProjectName(project),
+	)
+
+	c := gui.OSCommand.ExecutableFromString(cmdStr)
+
+	gui.OSCommand.PrepareForChildren(c)
 
 	return gui.runSubprocess(c)
 }
 
-func (gui *Gui) handleCreateProjectMenu(g *gocui.Gui, v *gocui.View) error {
-	if gui.isPopupPanel(v.Name()) {
+type commandOption struct {
+	description string
+	command     string
+	onPress     func() error
+}
+
+func (r *commandOption) getDisplayStrings() []string {
+	return []string{r.description, color.New(color.FgCyan).Sprint(r.command)}
+}
+
+func (gui *Gui) handleProjectUp(g *gocui.Gui, v *gocui.View) error {
+	project, err := gui.Panels.Projects.GetSelectedItem()
+	if err != nil {
 		return nil
 	}
 
-	testMenuItem := &types.MenuItem{
-		LabelColumns: []string{"t", "test"},
-		OnPress: func() error {
-			gui.Log.Println("tested")
+	return gui.createConfirmationPanel(gui.Tr.Confirm, gui.Tr.ConfirmUpProject, func(g *gocui.Gui, v *gocui.View) error {
+		cmdStr := utils.ApplyTemplate(
+			gui.Config.UserConfig.CommandTemplates.Up,
+			gui.DockerCommand.NewCommandObjectWithComposeFile(project),
+		)
+
+		return gui.WithWaitingStatus(gui.Tr.UppingProjectStatus, func() error {
+			cmd := gui.OSCommand.ExecutableFromString(cmdStr)
+			cmd.Dir = project.Path
+			if err := gui.OSCommand.RunExecutable(cmd); err != nil {
+				return gui.createErrorPanel(err.Error())
+			}
 			return nil
+		})
+	}, nil)
+}
+
+// Get service count from docker-compose.yml
+
+func (gui *Gui) handleProjectDown(g *gocui.Gui, v *gocui.View) error {
+	project, err := gui.Panels.Projects.GetSelectedItem()
+	if err != nil {
+		return nil
+	}
+
+	downCommand := utils.ApplyTemplate(
+		gui.Config.UserConfig.CommandTemplates.Down,
+		gui.DockerCommand.NewCommandObjectWithComposeFile(project),
+	)
+
+	downWithVolumesCommand := utils.ApplyTemplate(
+		gui.Config.UserConfig.CommandTemplates.DownWithVolumes,
+		gui.DockerCommand.NewCommandObjectWithComposeFile(project),
+	)
+
+	options := []*commandOption{
+		{
+			description: gui.Tr.Down,
+			command:     downCommand,
+			onPress: func() error {
+				return gui.WithWaitingStatus(gui.Tr.DowningStatus, func() error {
+					cmd := gui.OSCommand.ExecutableFromString(downCommand)
+					cmd.Dir = project.Path
+					if err := gui.OSCommand.RunExecutable(cmd); err != nil {
+						return gui.createErrorPanel(err.Error())
+					}
+					return nil
+				})
+			},
+		},
+		{
+			description: gui.Tr.DownWithVolumes,
+			command:     downWithVolumesCommand,
+			onPress: func() error {
+				return gui.WithWaitingStatus(gui.Tr.DowningStatus, func() error {
+					cmd := gui.OSCommand.ExecutableFromString(downWithVolumesCommand)
+					cmd.Dir = project.Path
+					if err := gui.OSCommand.RunExecutable(cmd); err != nil {
+						return gui.createErrorPanel(err.Error())
+					}
+					return nil
+				})
+			},
 		},
 	}
 
-	menuItems := []*types.MenuItem{testMenuItem}
+	menuItems := lo.Map(options, func(option *commandOption, _ int) *types.MenuItem {
+		return &types.MenuItem{
+			LabelColumns: option.getDisplayStrings(),
+			OnPress:      option.onPress,
+		}
+	})
 
 	return gui.Menu(CreateMenuOptions{
-		Title:      gui.Tr.MenuTitle,
-		Items:      menuItems,
-		HideCancel: true,
+		Title: "",
+		Items: menuItems,
 	})
 }
