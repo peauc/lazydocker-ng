@@ -7,7 +7,7 @@ Continuing the great work of Jesse Duffield and other contributors of [the origi
 [![GitHub Releases](https://img.shields.io/github/downloads/peauc/lazydocker-ng/total)](https://github.com/peauc/lazydocker-ng/releases)
 [![GitHub tag](https://img.shields.io/github/tag/peauc/lazydocker-ng.svg)](https://github.com/peauc/lazydocker-ng/releases/latest)
 
-![Gif](/docs/resources/demo3.gif)
+![Gif](/docs/resources/lazydocker-ng.gif)
 
 [Demo](https://youtu.be/NICqQPxwJWw)
 
