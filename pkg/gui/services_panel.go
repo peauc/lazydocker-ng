@@ -143,11 +143,11 @@ func (gui *Gui) handleServiceRemoveMenu(g *gocui.Gui, v *gocui.View) error {
 	options := []*commandOption{
 		{
 			description: gui.Tr.Remove,
-			command:     fmt.Sprintf("%s rm --stop --force %s", composeCommand, service.Name),
+			command:     fmt.Sprintf("%s --project-name %s rm --stop --force %s", composeCommand, service.ProjectName, service.Name),
 		},
 		{
 			description: gui.Tr.RemoveWithVolumes,
-			command:     fmt.Sprintf("%s rm --stop --force -v %s", composeCommand, service.Name),
+			command:     fmt.Sprintf("%s --project-name %s rm --stop --force -v %s", composeCommand, service.ProjectName, service.Name),
 		},
 	}
 

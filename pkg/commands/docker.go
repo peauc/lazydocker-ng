@@ -224,7 +224,7 @@ func (c *DockerCommand) assignContainersToServices(containers []*Container, serv
 L:
 	for _, service := range services {
 		for _, ctr := range containers {
-			if !ctr.OneOff && ctr.ServiceName == service.Name {
+			if !ctr.OneOff && ctr.ServiceName == service.Name && ctr.ProjectName == service.ProjectName {
 				service.Container = ctr
 				continue L
 			}
@@ -299,7 +299,7 @@ func (c *DockerCommand) GetContainers(existingContainers []*Container) ([]*Conta
 
 // GetServicesFromContainers gets services
 func (c *DockerCommand) GetServicesFromContainers(containers []*Container, currentProject *Project) ([]*Service, error) {
-	services := make([]*Service, 0, len(containers))
+	services := make([]*Service, 0)
 
 	if currentProject.Name == "" {
 		return services, nil
@@ -312,7 +312,8 @@ func (c *DockerCommand) GetServicesFromContainers(containers []*Container, curre
 
 		service := &Service{
 			Name:          cont.ServiceName,
-			ID:            cont.ID,
+			ID:            currentProject.Name + ":" + cont.ServiceName,
+			ProjectName:   currentProject.Name,
 			OSCommand:     c.OSCommand,
 			Log:           c.Log,
 			DockerCommand: c,
@@ -322,9 +323,8 @@ func (c *DockerCommand) GetServicesFromContainers(containers []*Container, curre
 
 	// TODO: Should be run once every time the project changes
 	if len(services) == 0 {
-		// If no services are found in running containers fetch services from dockerCompose
 		var err error
-		services, err = c.GetServices(currentProject != nil && currentProject.IsDockerCompose)
+		services, err = c.GetServicesFromDockerCompose(currentProject != nil && currentProject.IsDockerCompose, currentProject)
 		if err != nil {
 			return nil, err
 		}
@@ -333,8 +333,8 @@ func (c *DockerCommand) GetServicesFromContainers(containers []*Container, curre
 	return services, nil
 }
 
-// GetServices gets services
-func (c *DockerCommand) GetServices(inComposeProject bool) ([]*Service, error) {
+// GetServicesFromDockerCompose gets services
+func (c *DockerCommand) GetServicesFromDockerCompose(inComposeProject bool, currentProject *Project) ([]*Service, error) {
 	if !inComposeProject {
 		return nil, nil
 	}
@@ -346,15 +346,21 @@ func (c *DockerCommand) GetServices(inComposeProject bool) ([]*Service, error) {
 		return nil, err
 	}
 
+	projectName := ""
+	if currentProject != nil {
+		projectName = currentProject.Name
+	}
+
 	// output looks like:
 	// service1
 	// service2
 	lines := utils.SplitLines(output)
 	services := make([]*Service, len(lines))
-	for i, str := range lines {
+	for i, serviceName := range lines {
 		services[i] = &Service{
-			Name:          str,
-			ID:            str,
+			Name:          serviceName,
+			ID:            projectName + ":" + serviceName,
+			ProjectName:   projectName,
 			OSCommand:     c.OSCommand,
 			Log:           c.Log,
 			DockerCommand: c,
