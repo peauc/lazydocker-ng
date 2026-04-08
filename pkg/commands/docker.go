@@ -143,8 +143,7 @@ func NewDockerCommand(log *logrus.Entry, osCommand *OSCommand, tr *i18n.Translat
 		if err != nil {
 			return nil, fmt.Errorf("could not connect to Docker daemon: %w", err)
 		}
-		cli.NegotiateAPIVerslg
-		ionPing(ping)
+		cli.NegotiateAPIVersionPing(ping)
 	}
 
 	dockerCommand := &DockerCommand{
