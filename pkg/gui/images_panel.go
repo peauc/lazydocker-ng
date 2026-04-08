@@ -210,12 +210,11 @@ func (gui *Gui) handleImagesCustomCommand(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) handleImagesBulkCommand(g *gocui.Gui, v *gocui.View) error {
-	baseBulkCommands := []config.CustomCommand{
-		{
-			Name:             gui.Tr.PruneImages,
-			InternalFunction: gui.handlePruneImages,
-		},
-	}
+	baseBulkCommands := make([]config.CustomCommand, 0, 1+len(gui.Config.UserConfig.BulkCommands.Images))
+	baseBulkCommands = append(baseBulkCommands, config.CustomCommand{
+		Name:             gui.Tr.PruneImages,
+		InternalFunction: gui.handlePruneImages,
+	})
 
 	bulkCommands := append(baseBulkCommands, gui.Config.UserConfig.BulkCommands.Images...)
 	commandObject := gui.DockerCommand.NewCommandObject(commands.CommandObject{})

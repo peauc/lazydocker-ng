@@ -64,6 +64,12 @@ type UserConfig struct {
 	// will be filtered out and not displayed.
 	// Not documented because it's subject to change
 	Ignore []string `yaml:"ignore,omitempty"`
+
+	// DockerApiVersion overrides the Docker API version used when connecting to
+	// a Docker daemon. When empty, the version is negotiated automatically.
+	// Useful when connecting to an older remote Docker daemon (e.g. over SSH)
+	// that rejects the negotiated version.
+	DockerApiVersion string `yaml:"dockerApiVersion,omitempty"`
 }
 
 // ThemeConfig is for setting the colors of panels and some text.

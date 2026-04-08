@@ -124,13 +124,26 @@ func NewDockerCommand(log *logrus.Entry, osCommand *OSCommand, tr *i18n.Translat
 
 	clientOpts := []client.Opt{
 		client.WithTLSClientConfigFromEnv(),
-		client.WithAPIVersionNegotiation(),
 		client.WithHost(dockerHost),
+	}
+	if apiVersion := config.UserConfig.DockerApiVersion; apiVersion != "" {
+		clientOpts = append(clientOpts, client.WithVersion(apiVersion))
 	}
 
 	cli, err := client.NewClientWithOpts(clientOpts...)
 	if err != nil {
 		ogLog.Fatal(err)
+	}
+
+	// Eagerly negotiate the API version. WithAPIVersionNegotiation() is lazy
+	// and can leave the client at a version Docker 29.x+ rejects (too old).
+	// Pinging now ensures the correct version is set before any API calls.
+	if config.UserConfig.DockerApiVersion == "" {
+		ping, err := cli.Ping(context.Background())
+		if err != nil {
+			return nil, fmt.Errorf("could not connect to Docker daemon: %w", err)
+		}
+		cli.NegotiateAPIVersionPing(ping)
 	}
 
 	dockerCommand := &DockerCommand{
