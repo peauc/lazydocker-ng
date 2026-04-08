@@ -78,6 +78,7 @@ homebrew_casks:
   - repository:
       owner: peauc
       name: homebrew-lazydocker-ng
+      token: "{{ .Env.HOMEBREW_TOKEN }}"
 
     homepage: "https://github.com/peauc/lazydocker-ng/"
     description: "The continuation of lazydocker the simple terminal UI for docker, written in Go"
