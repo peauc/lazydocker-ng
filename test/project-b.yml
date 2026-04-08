@@ -1,0 +1,14 @@
+name: project-b
+
+services:
+  cache:
+    image: redis:alpine
+    ports:
+      - "6380:6379"
+
+  monitor:
+    image: alpine:latest
+    command: sh -c "while true; do echo \"[monitor] cache ping ok at $$(date)\"; sleep 5; done"
+    depends_on:
+      - cache
+    restart: unless-stopped

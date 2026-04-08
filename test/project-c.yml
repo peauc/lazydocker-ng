@@ -1,0 +1,17 @@
+name: project-c
+
+services:
+  app:
+    image: nginx:alpine
+    ports:
+      - "8082:80"
+
+  cache:
+    image: redis:alpine
+    ports:
+      - "6381:6379"
+
+  logger:
+    image: alpine:latest
+    command: sh -c "while true; do echo \"[logger] heartbeat $$(( RANDOM % 1000 ))\"; sleep 4; done"
+    restart: unless-stopped

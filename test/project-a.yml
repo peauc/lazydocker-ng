@@ -1,0 +1,17 @@
+name: project-a
+
+services:
+  web:
+    image: nginx:alpine
+    ports:
+      - "8081:80"
+
+  worker-1:
+    image: alpine:latest
+    command: sh -c "while true; do echo \"[worker-1] job $$(( RANDOM % 100 ))\"; sleep 2; done"
+    restart: unless-stopped
+
+  worker-2:
+    image: alpine:latest
+    command: sh -c "while true; do echo \"[worker-2] processing $$(( RANDOM % 100 ))\"; sleep 3; done"
+    restart: unless-stopped
