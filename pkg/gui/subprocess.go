@@ -12,6 +12,11 @@ import (
 	"github.com/peauc/lazydocker-ng/pkg/utils"
 )
 
+func isExitError(err error) bool {
+	_, ok := err.(*exec.ExitError)
+	return ok
+}
+
 func (gui *Gui) runSubprocess(cmd *exec.Cmd) error {
 	return gui.runSubprocessWithMessage(cmd, "")
 }
@@ -24,7 +29,7 @@ func (gui *Gui) runSubprocessWithMessage(cmd *exec.Cmd, msg string) error {
 		return gui.createErrorPanel(err.Error())
 	}
 
-	gui.PauseBackgroundThreads = true
+	gui.PauseBackgroundThreads.Store(true)
 
 	err := gui.runCommand(cmd, msg)
 
@@ -32,7 +37,7 @@ func (gui *Gui) runSubprocessWithMessage(cmd *exec.Cmd, msg string) error {
 		return gui.createErrorPanel(err.Error())
 	}
 
-	gui.PauseBackgroundThreads = false
+	gui.PauseBackgroundThreads.Store(false)
 
 	return err
 }
@@ -85,5 +90,8 @@ func (gui *Gui) runCommand(cmd *exec.Cmd, msg string) error {
 
 	gui.promptToReturn()
 
+	if isExitError(err) {
+		return nil
+	}
 	return err
 }

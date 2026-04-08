@@ -177,12 +177,11 @@ func (c *Container) eraseOldHistory(maxDuration time.Duration) {
 	}
 }
 
-func (c *Container) GetLastStats() (*RecordedStats, bool) {
+func (c *Container) GetLastStats() (RecordedStats, bool) {
 	c.StatsMutex.Lock()
 	defer c.StatsMutex.Unlock()
-	history := c.StatHistory
-	if len(history) == 0 {
-		return nil, false
+	if len(c.StatHistory) == 0 {
+		return RecordedStats{}, false
 	}
-	return history[len(history)-1], true
+	return *c.StatHistory[len(c.StatHistory)-1], true
 }

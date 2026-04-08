@@ -178,13 +178,13 @@ func (c *DockerCommand) Close() error {
 }
 
 func (c *DockerCommand) CreateClientStatMonitor(container *Container) {
-	container.MonitoringStats = true
+	container.SetMonitoringStats(true)
 	stream, err := c.Client.ContainerStats(context.Background(), container.ID, true)
 	if err != nil {
 		// not creating error panel because if we've disconnected from docker we'll
 		// have already created an error panel
 		c.Log.Error(err)
-		container.MonitoringStats = false
+		container.SetMonitoringStats(false)
 		return
 	}
 
@@ -208,7 +208,7 @@ func (c *DockerCommand) CreateClientStatMonitor(container *Container) {
 		container.appendStats(recordedStats, c.Config.UserConfig.Stats.MaxDuration)
 	}
 
-	container.MonitoringStats = false
+	container.SetMonitoringStats(false)
 }
 
 func (c *DockerCommand) RefreshContainersAndServices(currentServices []*Service, currentContainers []*Container, currentProject *Project) ([]*Container, []*Service, error) {
@@ -286,7 +286,7 @@ func (c *DockerCommand) GetContainers(existingContainers []*Container) ([]*Conta
 			}
 		}
 
-		newContainer.Container = ctr
+		newContainer.SetSummary(ctr)
 		// if the container is made with a name label we will use that
 		if name, ok := ctr.Labels["name"]; ok {
 			newContainer.Name = name
@@ -404,7 +404,7 @@ func (c *DockerCommand) SetContainerDetails(containers []*Container) {
 			if err != nil {
 				c.Log.Error(err)
 			} else {
-				ctr.Details = details
+				ctr.SetDetails(details)
 			}
 			wg.Done()
 		}()

@@ -80,7 +80,9 @@ func (gui *Gui) previousView(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) resetMainView() {
+	gui.StateMutex.Lock()
 	gui.State.Panels.Main.ObjectKey = ""
+	gui.StateMutex.Unlock()
 	gui.Views.Main.Wrap = gui.Config.UserConfig.Gui.WrapMainPanel
 }
 
