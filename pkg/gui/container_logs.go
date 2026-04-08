@@ -136,7 +136,7 @@ func (gui *Gui) writeContainerLogs(ctr *commands.Container, ctx context.Context,
 		}
 	}
 
-	if ctr.Details.Config.Tty {
+	if ctr.GetDetails().Config.Tty {
 		_, err = io.Copy(writer, readCloser)
 		if err != nil {
 			return err

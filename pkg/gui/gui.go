@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/docker/docker/api/types/events"
@@ -40,7 +41,7 @@ type Gui struct {
 	// if we've suspended the gui (e.g. because we've switched to a subprocess)
 	// we typically want to pause some things that are running like background
 	// file refreshes
-	PauseBackgroundThreads bool
+	PauseBackgroundThreads atomic.Bool
 
 	Mutexes
 
@@ -60,6 +61,7 @@ type Panels struct {
 type Mutexes struct {
 	SubprocessMutex deadlock.Mutex
 	ViewStackMutex  deadlock.Mutex
+	StateMutex      deadlock.RWMutex // protects guiState fields accessed from background goroutines
 }
 
 type mainPanelState struct {
@@ -211,7 +213,10 @@ func (gui *Gui) renderProjectOptions() error {
 }
 
 func (gui *Gui) handleToggleProjectMode(g *gocui.Gui, v *gocui.View) error {
+	gui.StateMutex.Lock()
 	gui.State.InDockerComposeMode = !gui.State.InDockerComposeMode
+	inDockerComposeMode := gui.State.InDockerComposeMode
+	gui.StateMutex.Unlock()
 
 	// Refresh the UI to reflect the mode change
 	if err := gui.refreshProjects(); err != nil {
@@ -223,7 +228,7 @@ func (gui *Gui) handleToggleProjectMode(g *gocui.Gui, v *gocui.View) error {
 
 	// Focus the appropriate panel based on the new mode
 	var targetView string
-	if gui.State.InDockerComposeMode {
+	if inDockerComposeMode {
 		targetView = "project"
 	} else {
 		targetView = "containers"
@@ -243,7 +248,7 @@ func (gui *Gui) goEvery(interval time.Duration, function func() error) {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 		for range ticker.C {
-			if !gui.PauseBackgroundThreads {
+			if !gui.PauseBackgroundThreads.Load() {
 				_ = function()
 			}
 		}
@@ -512,10 +517,11 @@ func (gui *Gui) handleCustomCommand(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) ShouldRefresh(key string) bool {
+	gui.StateMutex.Lock()
+	defer gui.StateMutex.Unlock()
 	if gui.State.Panels.Main.ObjectKey == key {
 		return false
 	}
-
 	gui.State.Panels.Main.ObjectKey = key
 	return true
 }
@@ -546,7 +552,7 @@ func (gui *Gui) monitorContainerStats(ctx context.Context) {
 			return
 		case <-ticker.C:
 			for _, container := range gui.Panels.Containers.List.GetAllItems() {
-				if !container.MonitoringStats {
+				if !container.IsMonitoringStats() {
 					go gui.DockerCommand.CreateClientStatMonitor(container)
 				}
 			}

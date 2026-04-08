@@ -26,11 +26,11 @@ func GetContainerDisplayStrings(guiConfig *config.GuiConfig, container *commands
 }
 
 func displayContainerImage(container *commands.Container) string {
-	return strings.TrimPrefix(container.Container.Image, "sha256:")
+	return strings.TrimPrefix(container.GetSummary().Image, "sha256:")
 }
 
 func displayPorts(c *commands.Container) string {
-	portStrings := lo.Map(c.Container.Ports, func(port container.Port, _ int) string {
+	portStrings := lo.Map(c.GetSummary().Ports, func(port container.Port, _ int) string {
 		if port.PublicPort == 0 {
 			return fmt.Sprintf("%d/%s", port.PrivatePort, port.Type)
 		}
@@ -74,16 +74,17 @@ func getContainerDisplayStatus(guiConfig *config.GuiConfig, c *commands.Containe
 		"dead":       '!',
 	}
 
+	state := c.GetSummary().State
 	var containerState string
 	switch guiConfig.ContainerStatusHealthStyle {
 	case "short":
-		containerState = shortStatusMap[c.Container.State]
+		containerState = shortStatusMap[state]
 	case "icon":
-		containerState = string(iconStatusMap[c.Container.State])
+		containerState = string(iconStatusMap[state])
 	case "long":
 		fallthrough
 	default:
-		containerState = c.Container.State
+		containerState = state
 	}
 
 	return utils.ColoredString(containerState, getContainerColor(c))
@@ -91,14 +92,15 @@ func getContainerDisplayStatus(guiConfig *config.GuiConfig, c *commands.Containe
 
 // GetDisplayStatus returns the exit code if the container has exited, and the health status if the container is running (and has a health check)
 func getContainerDisplaySubstatus(guiConfig *config.GuiConfig, c *commands.Container) string {
-	if !c.DetailsLoaded() {
+	details := c.GetDetails()
+	if details.ContainerJSONBase == nil {
 		return ""
 	}
 
-	switch c.Container.State {
+	switch c.GetSummary().State {
 	case "exited":
 		return utils.ColoredString(
-			fmt.Sprintf("(%s)", strconv.Itoa(c.Details.State.ExitCode)), getContainerColor(c),
+			fmt.Sprintf("(%s)", strconv.Itoa(details.State.ExitCode)), getContainerColor(c),
 		)
 	case "running":
 		return getHealthStatus(guiConfig, c)
@@ -108,7 +110,8 @@ func getContainerDisplaySubstatus(guiConfig *config.GuiConfig, c *commands.Conta
 }
 
 func getHealthStatus(guiConfig *config.GuiConfig, c *commands.Container) string {
-	if !c.DetailsLoaded() {
+	details := c.GetDetails()
+	if details.ContainerJSONBase == nil {
 		return ""
 	}
 
@@ -118,7 +121,7 @@ func getHealthStatus(guiConfig *config.GuiConfig, c *commands.Container) string 
 		"starting":  color.FgYellow,
 	}
 
-	if c.Details.State.Health == nil {
+	if details.State.Health == nil {
 		return ""
 	}
 
@@ -137,16 +140,16 @@ func getHealthStatus(guiConfig *config.GuiConfig, c *commands.Container) string 
 	var healthStatus string
 	switch guiConfig.ContainerStatusHealthStyle {
 	case "short":
-		healthStatus = shortHealthStatusMap[c.Details.State.Health.Status]
+		healthStatus = shortHealthStatusMap[details.State.Health.Status]
 	case "icon":
-		healthStatus = string(iconHealthStatusMap[c.Details.State.Health.Status])
+		healthStatus = string(iconHealthStatusMap[details.State.Health.Status])
 	case "long":
 		fallthrough
 	default:
-		healthStatus = c.Details.State.Health.Status
+		healthStatus = details.State.Health.Status
 	}
 
-	if healthStatusColor, ok := healthStatusColorMap[c.Details.State.Health.Status]; ok {
+	if healthStatusColor, ok := healthStatusColorMap[details.State.Health.Status]; ok {
 		return utils.ColoredString(fmt.Sprintf("(%s)", healthStatus), healthStatusColor)
 	}
 	return ""
@@ -176,11 +179,13 @@ func getDisplayCPUPerc(c *commands.Container) string {
 
 // getContainerColor Container color
 func getContainerColor(c *commands.Container) color.Attribute {
-	switch c.Container.State {
+	summary := c.GetSummary()
+	details := c.GetDetails()
+	switch summary.State {
 	case "exited":
 		// This means the colour may be briefly yellow and then switch to red upon starting
 		// Not sure what a better alternative is.
-		if !c.DetailsLoaded() || c.Details.State.ExitCode == 0 {
+		if details.ContainerJSONBase == nil || details.State.ExitCode == 0 {
 			return color.FgYellow
 		}
 		return color.FgRed

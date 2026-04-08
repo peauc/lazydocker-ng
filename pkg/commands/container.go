@@ -37,7 +37,44 @@ type Container struct {
 	DockerCommand   LimitedDockerCommand
 	Tr              *i18n.TranslationSet
 
-	StatsMutex deadlock.Mutex
+	StatsMutex     deadlock.Mutex
+	ContainerMutex deadlock.RWMutex // protects Container, Details, MonitoringStats
+}
+
+func (c *Container) GetSummary() container.Summary {
+	c.ContainerMutex.RLock()
+	defer c.ContainerMutex.RUnlock()
+	return c.Container
+}
+
+func (c *Container) SetSummary(s container.Summary) {
+	c.ContainerMutex.Lock()
+	defer c.ContainerMutex.Unlock()
+	c.Container = s
+}
+
+func (c *Container) GetDetails() container.InspectResponse {
+	c.ContainerMutex.RLock()
+	defer c.ContainerMutex.RUnlock()
+	return c.Details
+}
+
+func (c *Container) SetDetails(d container.InspectResponse) {
+	c.ContainerMutex.Lock()
+	defer c.ContainerMutex.Unlock()
+	c.Details = d
+}
+
+func (c *Container) IsMonitoringStats() bool {
+	c.ContainerMutex.RLock()
+	defer c.ContainerMutex.RUnlock()
+	return c.MonitoringStats
+}
+
+func (c *Container) SetMonitoringStats(v bool) {
+	c.ContainerMutex.Lock()
+	defer c.ContainerMutex.Unlock()
+	c.MonitoringStats = v
 }
 
 // Remove removes the container
@@ -89,16 +126,17 @@ func (c *Container) Restart() error {
 
 // Attach attaches the container
 func (c *Container) Attach() (*exec.Cmd, error) {
-	if !c.DetailsLoaded() {
+	details := c.GetDetails()
+	if details.ContainerJSONBase == nil {
 		return nil, errors.New(c.Tr.WaitingForContainerInfo)
 	}
 
 	// verify that we can in fact attach to this container
-	if !c.Details.Config.OpenStdin {
+	if !details.Config.OpenStdin {
 		return nil, errors.New(c.Tr.UnattachableContainerError)
 	}
 
-	if c.Container.State == "exited" {
+	if c.GetSummary().State == "exited" {
 		return nil, errors.New(c.Tr.CannotAttachStoppedContainerError)
 	}
 
@@ -148,5 +186,5 @@ func (c *Container) RenderTop(ctx context.Context) (string, error) {
 // Sometimes it takes some time for a container to have its details loaded
 // after it starts.
 func (c *Container) DetailsLoaded() bool {
-	return c.Details.ContainerJSONBase != nil
+	return c.GetDetails().ContainerJSONBase != nil
 }

@@ -71,7 +71,7 @@ func (gui *Gui) getContainersPanel() *panels.SideListPanel[*commands.Container] 
 				// where a container restarts but the new logs don't get read.
 				// Note that this might be jarring if we have a lot of logs and the container
 				// restarts a lot, so let's keep an eye on it.
-				return "containers-" + container.ID + "-" + container.Container.State
+				return "containers-" + container.ID + "-" + container.GetSummary().State
 			},
 		},
 		ListPanel: panels.ListPanel[*commands.Container]{
@@ -86,12 +86,18 @@ func (gui *Gui) getContainersPanel() *panels.SideListPanel[*commands.Container] 
 			return sortContainers(a, b, gui.Config.UserConfig.Gui.LegacySortContainers)
 		},
 		Filter: func(container *commands.Container) bool {
-			if !gui.State.InDockerComposeMode {
+			gui.StateMutex.RLock()
+			inDockerComposeMode := gui.State.InDockerComposeMode
+			project := gui.State.Project
+			showExited := gui.State.ShowExitedContainers
+			gui.StateMutex.RUnlock()
+
+			if !inDockerComposeMode {
 				return true
 			}
 
-			if gui.State.Project != nil && !gui.State.Project.IsDockerCompose {
-				if container.ProjectName != gui.State.Project.Name {
+			if project != nil && !project.IsDockerCompose {
+				if container.ProjectName != project.Name {
 					return false
 				}
 			} else {
@@ -100,7 +106,7 @@ func (gui *Gui) getContainersPanel() *panels.SideListPanel[*commands.Container] 
 				}
 			}
 
-			if !gui.State.ShowExitedContainers && container.Container.State == "exited" {
+			if !showExited && container.GetSummary().State == "exited" {
 				return false
 			}
 
@@ -126,13 +132,13 @@ func sortContainers(a *commands.Container, b *commands.Container, legacySort boo
 		return a.Name < b.Name
 	}
 
-	stateLeft := containerStates[a.Container.State]
-	stateRight := containerStates[b.Container.State]
+	stateLeft := containerStates[a.GetSummary().State]
+	stateRight := containerStates[b.GetSummary().State]
 	if stateLeft == stateRight {
 		return a.Name < b.Name
 	}
 
-	return containerStates[a.Container.State] < containerStates[b.Container.State]
+	return stateLeft < stateRight
 }
 
 func (gui *Gui) renderContainerEnv(container *commands.Container) tasks.TaskFunc {
@@ -140,15 +146,16 @@ func (gui *Gui) renderContainerEnv(container *commands.Container) tasks.TaskFunc
 }
 
 func (gui *Gui) containerEnv(container *commands.Container) string {
-	if !container.DetailsLoaded() {
+	details := container.GetDetails()
+	if details.ContainerJSONBase == nil {
 		return gui.Tr.WaitingForContainerInfo
 	}
 
-	if len(container.Details.Config.Env) == 0 {
+	if len(details.Config.Env) == 0 {
 		return gui.Tr.NothingToDisplay
 	}
 
-	envVarsList := lo.Map(container.Details.Config.Env, func(envVar string, _ int) []string {
+	envVarsList := lo.Map(details.Config.Env, func(envVar string, _ int) []string {
 		splitEnv := strings.SplitN(envVar, "=", 2)
 		key := splitEnv[0]
 		value := ""
@@ -175,7 +182,8 @@ func (gui *Gui) renderContainerConfig(container *commands.Container) tasks.TaskF
 }
 
 func (gui *Gui) containerConfigStr(container *commands.Container) string {
-	if !container.DetailsLoaded() {
+	details := container.GetDetails()
+	if details.ContainerJSONBase == nil {
 		return gui.Tr.WaitingForContainerInfo
 	}
 
@@ -183,15 +191,15 @@ func (gui *Gui) containerConfigStr(container *commands.Container) string {
 	output := ""
 	output += utils.WithPadding("ID: ", padding) + container.ID + "\n"
 	output += utils.WithPadding("Name: ", padding) + container.Name + "\n"
-	output += utils.WithPadding("Image: ", padding) + container.Details.Config.Image + "\n"
-	output += utils.WithPadding("Command: ", padding) + strings.Join(append([]string{container.Details.Path}, container.Details.Args...), " ") + "\n"
-	output += utils.WithPadding("Labels: ", padding) + utils.FormatMap(padding, container.Details.Config.Labels)
+	output += utils.WithPadding("Image: ", padding) + details.Config.Image + "\n"
+	output += utils.WithPadding("Command: ", padding) + strings.Join(append([]string{details.Path}, details.Args...), " ") + "\n"
+	output += utils.WithPadding("Labels: ", padding) + utils.FormatMap(padding, details.Config.Labels)
 	output += "\n"
 
 	output += utils.WithPadding("Mounts: ", padding)
-	if len(container.Details.Mounts) > 0 {
+	if len(details.Mounts) > 0 {
 		output += "\n"
-		for _, mount := range container.Details.Mounts {
+		for _, mount := range details.Mounts {
 			if mount.Type == "volume" {
 				output += fmt.Sprintf("%s%s %s\n", strings.Repeat(" ", padding), utils.ColoredString(string(mount.Type)+":", color.FgYellow), mount.Name)
 			} else {
@@ -203,9 +211,9 @@ func (gui *Gui) containerConfigStr(container *commands.Container) string {
 	}
 
 	output += utils.WithPadding("Ports: ", padding)
-	if len(container.Details.NetworkSettings.Ports) > 0 {
+	if len(details.NetworkSettings.Ports) > 0 {
 		output += "\n"
-		for k, v := range container.Details.NetworkSettings.Ports {
+		for k, v := range details.NetworkSettings.Ports {
 			for _, host := range v {
 				output += fmt.Sprintf("%s%s %s\n", strings.Repeat(" ", padding), utils.ColoredString(host.HostPort+":", color.FgYellow), k)
 			}
@@ -214,7 +222,7 @@ func (gui *Gui) containerConfigStr(container *commands.Container) string {
 		output += "none\n"
 	}
 
-	data, err := utils.MarshalIntoYaml(&container.Details)
+	data, err := utils.MarshalIntoYaml(&details)
 	if err != nil {
 		return fmt.Sprintf("Error marshalling container details: %v", err)
 	}
@@ -268,10 +276,14 @@ func (gui *Gui) refreshContainersAndServices() error {
 	originalSelectedLineIdx := gui.Panels.Services.SelectedIdx
 	selectedService, isServiceSelected := gui.Panels.Services.List.TryGet(originalSelectedLineIdx)
 
+	gui.StateMutex.RLock()
+	project := gui.State.Project
+	gui.StateMutex.RUnlock()
+
 	containers, services, err := gui.DockerCommand.RefreshContainersAndServices(
 		gui.Panels.Services.List.GetAllItems(),
 		gui.Panels.Containers.List.GetAllItems(),
-		gui.State.Project,
+		project,
 	)
 	if err != nil {
 		return err
@@ -297,7 +309,10 @@ func (gui *Gui) refreshContainersAndServices() error {
 }
 
 func (gui *Gui) renderContainersAndServices() error {
-	if gui.State.InDockerComposeMode {
+	gui.StateMutex.RLock()
+	inDockerComposeMode := gui.State.InDockerComposeMode
+	gui.StateMutex.RUnlock()
+	if inDockerComposeMode {
 		if err := gui.Panels.Services.RerenderList(); err != nil {
 			return err
 		}
@@ -311,7 +326,9 @@ func (gui *Gui) renderContainersAndServices() error {
 }
 
 func (gui *Gui) handleHideStoppedContainers(g *gocui.Gui, v *gocui.View) error {
+	gui.StateMutex.Lock()
 	gui.State.ShowExitedContainers = !gui.State.ShowExitedContainers
+	gui.StateMutex.Unlock()
 
 	return gui.Panels.Containers.RerenderList()
 }
@@ -360,7 +377,7 @@ func (gui *Gui) handleContainersRemoveMenu(g *gocui.Gui, v *gocui.View) error {
 // Fix UI not showing it being paused (it should say unpaused)
 func (gui *Gui) PauseContainer(container *commands.Container) error {
 	return gui.WithWaitingStatus(gui.Tr.PausingStatus, func() (err error) {
-		if container.Details.State.Paused {
+		if container.GetDetails().State.Paused {
 			err = container.Unpause()
 		} else {
 			err = container.Pause()
@@ -389,11 +406,12 @@ func (gui *Gui) handleContainerStartStop(g *gocui.Gui, v *gocui.View) error {
 		return nil
 	}
 
-	if ctr.Container.State != "exited" && ctr.Container.State != "running" {
+	ctrState := ctr.GetSummary().State
+	if ctrState != "exited" && ctrState != "running" {
 		return gui.createErrorPanel(gui.Tr.CannotStartStop)
 	}
 
-	if ctr.Container.State == "exited" {
+	if ctrState == "exited" {
 		return gui.WithWaitingStatus(gui.Tr.StoppingStatus, func() error {
 			return ctr.Start()
 		})
@@ -582,11 +600,12 @@ func (gui *Gui) handleContainersOpenInBrowserCommand(g *gocui.Gui, v *gocui.View
 
 func (gui *Gui) openContainerInBrowser(ctr *commands.Container) error {
 	// skip if no any ports
-	if len(ctr.Container.Ports) == 0 {
+	summary := ctr.GetSummary()
+	if len(summary.Ports) == 0 {
 		return nil
 	}
 	// skip if the first port is not published
-	port := ctr.Container.Ports[0]
+	port := summary.Ports[0]
 	if port.IP == "" {
 		return nil
 	}

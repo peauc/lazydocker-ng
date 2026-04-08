@@ -5,6 +5,7 @@ import (
 
 	"github.com/jesseduffield/gocui"
 	"github.com/peauc/lazydocker-ng/pkg/utils"
+	"github.com/sasha-s/go-deadlock"
 )
 
 type appStatus struct {
@@ -15,9 +16,10 @@ type appStatus struct {
 
 type statusManager struct {
 	statuses []appStatus
+	mu       deadlock.Mutex
 }
 
-func (m *statusManager) removeStatus(name string) {
+func (m *statusManager) removeStatusLocked(name string) {
 	newStatuses := []appStatus{}
 	for _, status := range m.statuses {
 		if status.name != name {
@@ -27,8 +29,16 @@ func (m *statusManager) removeStatus(name string) {
 	m.statuses = newStatuses
 }
 
+func (m *statusManager) removeStatus(name string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.removeStatusLocked(name)
+}
+
 func (m *statusManager) addWaitingStatus(name string) {
-	m.removeStatus(name)
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.removeStatusLocked(name)
 	newStatus := appStatus{
 		name:       name,
 		statusType: "waiting",
@@ -38,6 +48,8 @@ func (m *statusManager) addWaitingStatus(name string) {
 }
 
 func (m *statusManager) getStatusString() string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	if len(m.statuses) == 0 {
 		return ""
 	}

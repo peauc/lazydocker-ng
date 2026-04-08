@@ -100,8 +100,10 @@ func (gui *Gui) handleProjectSelect(g *gocui.Gui, v *gocui.View) error {
 
 	gui.Log.Info("Selected project: " + project.Name)
 
+	gui.StateMutex.Lock()
 	gui.State.Project = project
 	gui.State.CurrentDockerComposeProject = project.Name
+	gui.StateMutex.Unlock()
 
 	if err := gui.refreshContainersAndServices(); err != nil {
 		gui.Log.Error(err)
