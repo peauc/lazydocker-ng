@@ -34,6 +34,8 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
   <kbd>m</kbd>: zeige Protokolle
   <kbd>U</kbd>: up project
   <kbd>D</kbd>: down project
+  <kbd>s</kbd>: start project
+  <kbd>S</kbd>: stop project
   <kbd>enter</kbd>: fokussieren aufs Hauptpanel
   <kbd>[</kbd>: vorheriges Tab
   <kbd>]</kbd>: nächstes Tab

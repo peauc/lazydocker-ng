@@ -34,6 +34,8 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
   <kbd>m</kbd>: pokaż logi
   <kbd>U</kbd>: up project
   <kbd>D</kbd>: down project
+  <kbd>s</kbd>: start project
+  <kbd>S</kbd>: stop project
   <kbd>enter</kbd>: skup na głównym panelu
   <kbd>[</kbd>: poprzednia zakładka
   <kbd>]</kbd>: następna zakładka

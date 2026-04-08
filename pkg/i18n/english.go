@@ -68,6 +68,11 @@ type TranslationSet struct {
 	ViewLogs                    string
 	UpProject                   string
 	DownProject                 string
+	StartProject                string
+	StopProject                 string
+	StartingProjectStatus       string
+	StoppingProjectStatus       string
+	ConfirmStopProject          string
 	ServicesTitle               string
 	ContainersTitle             string
 	StandaloneContainersTitle   string
@@ -202,6 +207,11 @@ func englishSet() TranslationSet {
 		ViewLogs:                    "view logs",
 		UpProject:                   "up project",
 		DownProject:                 "down project",
+		StartProject:                "start project",
+		StopProject:                 "stop project",
+		StartingProjectStatus:       "starting project",
+		StoppingProjectStatus:       "stopping project",
+		ConfirmStopProject:          "Are you sure you want to stop your docker compose project?",
 		RemoveImage:                 "remove image",
 		RemoveVolume:                "remove volume",
 		RemoveNetwork:               "remove network",

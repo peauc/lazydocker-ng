@@ -34,6 +34,8 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
   <kbd>m</kbd>: voir les enregistrements
   <kbd>U</kbd>: up project
   <kbd>D</kbd>: down project
+  <kbd>s</kbd>: start project
+  <kbd>S</kbd>: stop project
   <kbd>enter</kbd>: focus panneau principal
   <kbd>[</kbd>: onglet précédent
   <kbd>]</kbd>: onglet suivant

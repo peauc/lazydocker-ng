@@ -34,6 +34,8 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
   <kbd>m</kbd>: ver logs
   <kbd>U</kbd>: levantar proyecto
   <kbd>D</kbd>: dar de baja el proyecto
+  <kbd>s</kbd>: iniciar proyecto
+  <kbd>S</kbd>: detener proyecto
   <kbd>enter</kbd>: enfocar panel principal
   <kbd>[</kbd>: anterior pestaña
   <kbd>]</kbd>: siguiente pestaña
