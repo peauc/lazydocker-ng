@@ -258,6 +258,50 @@ func (gui *Gui) handleProjectUp(g *gocui.Gui, v *gocui.View) error {
 	}, nil)
 }
 
+func (gui *Gui) handleProjectStart(g *gocui.Gui, v *gocui.View) error {
+	project, err := gui.Panels.Projects.GetSelectedItem()
+	if err != nil {
+		return nil
+	}
+
+	cmdStr := utils.ApplyTemplate(
+		gui.Config.UserConfig.CommandTemplates.Start,
+		gui.DockerCommand.NewCommandObjectWithComposeFile(project),
+	)
+
+	return gui.WithWaitingStatus(gui.Tr.StartingProjectStatus, func() error {
+		cmd := gui.OSCommand.ExecutableFromString(cmdStr)
+		cmd.Dir = project.Path
+		if err := gui.OSCommand.RunExecutable(cmd); err != nil {
+			return gui.createErrorPanel(err.Error())
+		}
+		return nil
+	})
+}
+
+func (gui *Gui) handleProjectStop(g *gocui.Gui, v *gocui.View) error {
+	project, err := gui.Panels.Projects.GetSelectedItem()
+	if err != nil {
+		return nil
+	}
+
+	return gui.createConfirmationPanel(gui.Tr.Confirm, gui.Tr.ConfirmStopProject, func(g *gocui.Gui, v *gocui.View) error {
+		cmdStr := utils.ApplyTemplate(
+			gui.Config.UserConfig.CommandTemplates.Stop,
+			gui.DockerCommand.NewCommandObjectWithComposeFile(project),
+		)
+
+		return gui.WithWaitingStatus(gui.Tr.StoppingProjectStatus, func() error {
+			cmd := gui.OSCommand.ExecutableFromString(cmdStr)
+			cmd.Dir = project.Path
+			if err := gui.OSCommand.RunExecutable(cmd); err != nil {
+				return gui.createErrorPanel(err.Error())
+			}
+			return nil
+		})
+	}, nil)
+}
+
 // Get service count from docker-compose.yml
 
 func (gui *Gui) handleProjectDown(g *gocui.Gui, v *gocui.View) error {
