@@ -180,12 +180,11 @@ func (gui *Gui) handleVolumesCustomCommand(g *gocui.Gui, v *gocui.View) error {
 }
 
 func (gui *Gui) handleVolumesBulkCommand(g *gocui.Gui, v *gocui.View) error {
-	baseBulkCommands := []config.CustomCommand{
-		{
-			Name:             gui.Tr.PruneVolumes,
-			InternalFunction: gui.handlePruneVolumes,
-		},
-	}
+	baseBulkCommands := make([]config.CustomCommand, 0, 1+len(gui.Config.UserConfig.BulkCommands.Volumes))
+	baseBulkCommands = append(baseBulkCommands, config.CustomCommand{
+		Name:             gui.Tr.PruneVolumes,
+		InternalFunction: gui.handlePruneVolumes,
+	})
 
 	bulkCommands := append(baseBulkCommands, gui.Config.UserConfig.BulkCommands.Volumes...)
 	commandObject := gui.DockerCommand.NewCommandObject(commands.CommandObject{})

@@ -179,7 +179,7 @@ func (gui *Gui) reRenderString(viewName, s string) {
 }
 
 func (gui *Gui) optionsMapToString(optionsMap map[string]string) string {
-	optionsArray := make([]string, 0)
+	optionsArray := make([]string, 0, len(optionsMap))
 	for key, description := range optionsMap {
 		optionsArray = append(optionsArray, key+": "+description)
 	}
