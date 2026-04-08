@@ -429,6 +429,20 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			Description: gui.Tr.DownProject,
 		},
 		{
+			ViewName:    "project",
+			Key:         's',
+			Modifier:    gocui.ModNone,
+			Handler:     gui.handleProjectStart,
+			Description: gui.Tr.StartProject,
+		},
+		{
+			ViewName:    "project",
+			Key:         'S',
+			Modifier:    gocui.ModNone,
+			Handler:     gui.handleProjectStop,
+			Description: gui.Tr.StopProject,
+		},
+		{
 			ViewName:    "services",
 			Key:         'R',
 			Modifier:    gocui.ModNone,

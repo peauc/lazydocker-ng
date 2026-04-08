@@ -165,6 +165,11 @@ type CommandTemplatesConfig struct {
 	// downs and removes volumes
 	DownWithVolumes string `yaml:"downWithVolumes,omitempty"`
 
+	// Start performs a docker start on all containers of the stack
+	Start string `yaml:"start,omitempty"`
+	// Stop performs a docker stop on all containers of the stack
+	Stop string `yaml:"stop,omitempty"`
+
 	// DockerCompose is for your docker-compose command. You may want to combine a
 	// few different docker-compose.yml files together, in which case you can set
 	// this to "docker compose -f foo/docker-compose.yml -f
@@ -392,6 +397,8 @@ func GetDefaultConfig() UserConfig {
 			Up:                       "{{ .DockerCompose }} up -d",
 			Down:                     "{{ .DockerCompose }} down",
 			DownWithVolumes:          "{{ .DockerCompose }} down --volumes",
+			Start:                    "{{ .DockerCompose }} start",
+			Stop:                     "{{ .DockerCompose }} stop",
 			UpService:                "{{ .DockerCompose }} --project-name {{ .Service.ProjectName }} up -d {{ .Service.Name }}",
 			RebuildService:           "{{ .DockerCompose }} --project-name {{ .Service.ProjectName }} up -d --build {{ .Service.Name }}",
 			RecreateService:          "{{ .DockerCompose }} --project-name {{ .Service.ProjectName }} up -d --force-recreate {{ .Service.Name }}",
