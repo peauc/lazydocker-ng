@@ -8,6 +8,8 @@ on:
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -24,5 +26,5 @@ jobs:
           version: v2.13.2
           args: release --clean
         env:
-          GITHUB_TOKEN: ${{secrets.TOKEN_GITHUB}}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
           AUR_KEY: ${{secrets.AUR_KEY}}
