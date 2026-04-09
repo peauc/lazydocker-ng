@@ -1,6 +1,8 @@
 package gui
 
 import (
+	"fmt"
+
 	"github.com/jesseduffield/gocui"
 	"github.com/samber/lo"
 )
@@ -187,7 +189,11 @@ func (gui *Gui) setInitialViewContent() error {
 }
 
 func (gui *Gui) getInformationContent() string {
-	return gui.Config.Version
+	contextName := gui.DockerCommand.CurrentContextName
+	if contextName == "" {
+		contextName = "default"
+	}
+	return fmt.Sprintf("[%s] %s", contextName, gui.Config.Version)
 }
 
 func (gui *Gui) popupViewNames() []string {

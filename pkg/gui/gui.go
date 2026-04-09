@@ -43,6 +43,16 @@ type Gui struct {
 	// file refreshes
 	PauseBackgroundThreads atomic.Bool
 
+	// backgroundCtx and backgroundCancel control the lifecycle of
+	// listenForEvents and monitorContainerStats goroutines.
+	// They are replaced on each Docker context switch.
+	backgroundCtx    context.Context
+	backgroundCancel context.CancelFunc
+	// triggerRefresh triggers a full refresh of all panels.
+	triggerRefresh func()
+	// switchingContext guards against concurrent context switches.
+	switchingContext atomic.Bool
+
 	Mutexes
 
 	Panels Panels
@@ -197,6 +207,7 @@ func (gui *Gui) renderGlobalOptions() error {
 		"← → ↑ ↓":   gui.Tr.Navigate,
 		"q":         gui.Tr.Quit,
 		"x":         gui.Tr.Menu,
+		"C":         gui.Tr.SwitchDockerContext,
 		"0":         gui.Tr.AboutTitle,
 	})
 }
@@ -335,11 +346,12 @@ func (gui *Gui) Run() error {
 		}
 	}
 
-	ctx, finish := context.WithCancel(context.Background())
-	defer finish()
+	gui.backgroundCtx, gui.backgroundCancel = context.WithCancel(context.Background())
+	defer gui.backgroundCancel()
+	gui.triggerRefresh = throttledRefresh.Trigger
 
-	go gui.listenForEvents(ctx, throttledRefresh.Trigger)
-	go gui.monitorContainerStats(ctx)
+	go gui.listenForEvents(gui.backgroundCtx, gui.triggerRefresh)
+	go gui.monitorContainerStats(gui.backgroundCtx)
 
 	go func() {
 		throttledRefresh.Trigger()
@@ -415,7 +427,7 @@ func (gui *Gui) listenForEvents(ctx context.Context, refresh func()) {
 
 outer:
 	for {
-		messageChan, errChan := gui.DockerCommand.Client.Events(context.Background(), events.ListOptions{})
+		messageChan, errChan := gui.DockerCommand.Client.Events(ctx, events.ListOptions{})
 
 		if errorCount > 0 {
 			select {
@@ -553,11 +565,42 @@ func (gui *Gui) monitorContainerStats(ctx context.Context) {
 		case <-ticker.C:
 			for _, container := range gui.Panels.Containers.List.GetAllItems() {
 				if !container.IsMonitoringStats() {
-					go gui.DockerCommand.CreateClientStatMonitor(container)
+					go gui.DockerCommand.CreateClientStatMonitor(ctx, container)
 				}
 			}
 		}
 	}
+}
+
+// restartBackgroundGoroutines cancels existing background goroutines and starts new ones.
+// Used during Docker context switching to restart event listening and stats monitoring.
+func (gui *Gui) restartBackgroundGoroutines() {
+	if gui.backgroundCancel != nil {
+		gui.backgroundCancel()
+	}
+	gui.backgroundCtx, gui.backgroundCancel = context.WithCancel(context.Background())
+	go gui.listenForEvents(gui.backgroundCtx, gui.triggerRefresh)
+	go gui.monitorContainerStats(gui.backgroundCtx)
+}
+
+// clearAllPanelData removes all items from every panel and rerenders the views
+// so stale data from the previous Docker context is not displayed during a context switch.
+func (gui *Gui) clearAllPanelData() {
+	gui.Panels.Containers.SetItems([]*commands.Container{})
+	gui.Panels.Services.SetItems([]*commands.Service{})
+	gui.Panels.Images.SetItems([]*commands.Image{})
+	gui.Panels.Volumes.SetItems([]*commands.Volume{})
+	gui.Panels.Networks.SetItems([]*commands.Network{})
+	gui.Panels.Projects.SetItems([]*commands.Project{})
+
+	gui.Panels.Containers.RerenderList()
+	gui.Panels.Services.RerenderList()
+	gui.Panels.Images.RerenderList()
+	gui.Panels.Volumes.RerenderList()
+	gui.Panels.Networks.RerenderList()
+	gui.Panels.Projects.RerenderList()
+
+	gui.clearMainView()
 }
 
 // this is used by our cheatsheet code to generate keybindings. We need some views

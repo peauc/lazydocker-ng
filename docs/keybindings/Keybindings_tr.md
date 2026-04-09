@@ -6,6 +6,7 @@ _This file is auto-generated. To update, make the changes in the pkg/i18n direct
 
 <pre>
   <kbd>	</kbd>: Toggle Mode
+  <kbd>C</kbd>: switch Docker context
   <kbd>P</kbd>: toggle project mode
   <kbd>0</kbd>: About
   <kbd>+</kbd>: next screen mode (normal/half/fullscreen)

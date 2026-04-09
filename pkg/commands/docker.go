@@ -27,6 +27,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// DockerContext represents a Docker CLI context for display in the UI
+type DockerContext struct {
+	Name      string
+	Endpoint  string
+	IsCurrent bool
+}
+
 // DockerCommand is our main docker interface
 type DockerCommand struct {
 	Log            *logrus.Entry
@@ -38,7 +45,8 @@ type DockerCommand struct {
 	ContainerMutex deadlock.Mutex
 	ServiceMutex   deadlock.Mutex
 
-	Closers []io.Closer
+	Closers            []io.Closer
+	CurrentContextName string
 }
 
 var _ io.Closer = &DockerCommand{}
@@ -105,19 +113,20 @@ func (c *DockerCommand) NewCommandObjectWithProjectName(project *Project) Comman
 	return CommandObject{DockerCompose: dockerComposeCmd}
 }
 
-// NewDockerCommand creates a DockerCommand struct that wraps the docker client.
-// Able to run docker commands and handles SSH docker hosts
-func NewDockerCommand(log *logrus.Entry, osCommand *OSCommand, tr *i18n.TranslationSet, config *config.AppConfig, errorChan chan error) (*DockerCommand, error) {
-	dockerHost, err := determineDockerHost()
-	if err != nil {
-		ogLog.Printf("> could not determine host %v", err)
-	}
+// clientResult holds the Docker client and associated resources created by createDockerClient.
+type clientResult struct {
+	Client *client.Client
+	Closer io.Closer
+}
 
+// createDockerClient sets up an SSH tunnel (if needed), creates a Docker API
+// client for the given host, and pings the daemon to negotiate the API version.
+// On failure any partially-created resources are cleaned up before returning.
+func createDockerClient(osCommand *OSCommand, apiVersion string, dockerHost string) (*clientResult, error) {
 	tunnelResult, err := ssh.NewSSHHandler(osCommand).HandleSSHDockerHost(dockerHost)
 	if err != nil {
-		ogLog.Fatal(err)
+		return nil, fmt.Errorf("could not set up SSH tunnel: %w", err)
 	}
-	// If we created a tunnel to the remote ssh host, we then override the dockerhost to point to the tunnel
 	if tunnelResult.Created {
 		dockerHost = tunnelResult.SocketPath
 	}
@@ -126,34 +135,57 @@ func NewDockerCommand(log *logrus.Entry, osCommand *OSCommand, tr *i18n.Translat
 		client.WithTLSClientConfigFromEnv(),
 		client.WithHost(dockerHost),
 	}
-	if apiVersion := config.UserConfig.DockerApiVersion; apiVersion != "" {
+	if apiVersion != "" {
 		clientOpts = append(clientOpts, client.WithVersion(apiVersion))
 	}
 
 	cli, err := client.NewClientWithOpts(clientOpts...)
 	if err != nil {
-		ogLog.Fatal(err)
+		if tunnelResult.Closer != nil {
+			tunnelResult.Closer.Close()
+		}
+		return nil, fmt.Errorf("could not create Docker client: %w", err)
 	}
 
-	// Eagerly negotiate the API version. WithAPIVersionNegotiation() is lazy
-	// and can leave the client at a version Docker 29.x+ rejects (too old).
-	// Pinging now ensures the correct version is set before any API calls.
-	if config.UserConfig.DockerApiVersion == "" {
-		ping, err := cli.Ping(context.Background())
+	if apiVersion == "" {
+		pingCtx, pingCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer pingCancel()
+		ping, err := cli.Ping(pingCtx)
 		if err != nil {
+			cli.Close()
+			if tunnelResult.Closer != nil {
+				tunnelResult.Closer.Close()
+			}
 			return nil, fmt.Errorf("could not connect to Docker daemon: %w", err)
 		}
 		cli.NegotiateAPIVersionPing(ping)
 	}
 
+	return &clientResult{Client: cli, Closer: tunnelResult.Closer}, nil
+}
+
+// NewDockerCommand creates a DockerCommand struct that wraps the docker client.
+// Able to run docker commands and handles SSH docker hosts
+func NewDockerCommand(log *logrus.Entry, osCommand *OSCommand, tr *i18n.TranslationSet, config *config.AppConfig, errorChan chan error) (*DockerCommand, error) {
+	dockerHost, err := determineDockerHost()
+	if err != nil {
+		ogLog.Printf("> could not determine host %v", err)
+	}
+
+	result, err := createDockerClient(osCommand, config.UserConfig.DockerApiVersion, dockerHost)
+	if err != nil {
+		return nil, err
+	}
+
 	dockerCommand := &DockerCommand{
-		Log:       log,
-		OSCommand: osCommand,
-		Tr:        tr,
-		Config:    config,
-		Client:    cli,
-		ErrorChan: errorChan,
-		Closers:   []io.Closer{tunnelResult.Closer},
+		Log:                log,
+		OSCommand:          osCommand,
+		Tr:                 tr,
+		Config:             config,
+		Client:             result.Client,
+		ErrorChan:          errorChan,
+		Closers:            []io.Closer{result.Closer},
+		CurrentContextName: resolveCurrentContextName(),
 	}
 
 	dockerCommand.setDockerComposeCommand(config)
@@ -177,9 +209,9 @@ func (c *DockerCommand) Close() error {
 	return utils.CloseMany(c.Closers)
 }
 
-func (c *DockerCommand) CreateClientStatMonitor(container *Container) {
+func (c *DockerCommand) CreateClientStatMonitor(ctx context.Context, container *Container) {
 	container.SetMonitoringStats(true)
-	stream, err := c.Client.ContainerStats(context.Background(), container.ID, true)
+	stream, err := c.Client.ContainerStats(ctx, container.ID, true)
 	if err != nil {
 		// not creating error panel because if we've disconnected from docker we'll
 		// have already created an error panel
@@ -629,6 +661,67 @@ func (c *DockerCommand) GetProjects(containers []*Container, currentProjectDir s
 	return projectsList
 }
 
+// newContextStore creates a Docker CLI context store for reading context metadata.
+func newContextStore() ctxstore.Store {
+	storeConfig := ctxstore.NewConfig(
+		func() interface{} { return &ddocker.EndpointMeta{} },
+		ctxstore.EndpointTypeGetter(ddocker.DockerEndpoint, func() interface{} { return &ddocker.EndpointMeta{} }),
+	)
+	return ctxstore.New(cliconfig.ContextStoreDir(), storeConfig)
+}
+
+// resolveCurrentContextName returns the context name that the Docker CLI would use.
+// If DOCKER_HOST is set, context is "default". Otherwise reads DOCKER_CONTEXT env
+// and ~/.docker/config.json.
+func resolveCurrentContextName() string {
+	if os.Getenv("DOCKER_HOST") != "" {
+		return "default"
+	}
+
+	currentContext := os.Getenv("DOCKER_CONTEXT")
+	if currentContext == "" {
+		cf, err := cliconfig.Load(cliconfig.Dir())
+		if err != nil {
+			return "default"
+		}
+		currentContext = cf.CurrentContext
+	}
+
+	if currentContext == "" {
+		return "default"
+	}
+	return currentContext
+}
+
+// resolveDockerHostForContext resolves the Docker host URL for a given context name.
+func resolveDockerHostForContext(contextName string) (string, error) {
+	if contextName == "" || contextName == "default" {
+		return defaultDockerHost, nil
+	}
+
+	st := newContextStore()
+	md, err := st.GetMetadata(contextName)
+	if err != nil {
+		return "", fmt.Errorf("could not load context %q: %w", contextName, err)
+	}
+
+	dockerEP, ok := md.Endpoints[ddocker.DockerEndpoint]
+	if !ok {
+		return defaultDockerHost, nil
+	}
+
+	dockerEPMeta, ok := dockerEP.(ddocker.EndpointMeta)
+	if !ok {
+		return "", fmt.Errorf("expected docker.EndpointMeta, got %T", dockerEP)
+	}
+
+	if dockerEPMeta.Host != "" {
+		return dockerEPMeta.Host, nil
+	}
+
+	return defaultDockerHost, nil
+}
+
 // determineDockerHost tries to the determine the docker host that we should connect to
 // in the following order of decreasing precedence:
 //   - value of "DOCKER_HOST" environment variable
@@ -641,51 +734,70 @@ func determineDockerHost() (string, error) {
 		return os.Getenv("DOCKER_HOST"), nil
 	}
 
-	currentContext := os.Getenv("DOCKER_CONTEXT")
-	if currentContext == "" {
-		cf, err := cliconfig.Load(cliconfig.Dir())
-		if err != nil {
-			return "", err
-		}
-		currentContext = cf.CurrentContext
-	}
+	return resolveDockerHostForContext(resolveCurrentContextName())
+}
 
-	// On some systems (windows) `default` is stored in the docker config as the currentContext.
-	if currentContext == "" || currentContext == "default" {
-		// If a docker context is neither specified via the "DOCKER_CONTEXT" environment variable nor via the
-		// $HOME/.docker/config file, then we fall back to connecting to the "default docker host" meant for
-		// the host operating system.
-		return defaultDockerHost, nil
-	}
-
-	storeConfig := ctxstore.NewConfig(
-		func() interface{} { return &ddocker.EndpointMeta{} },
-		ctxstore.EndpointTypeGetter(ddocker.DockerEndpoint, func() interface{} { return &ddocker.EndpointMeta{} }),
-	)
-
-	st := ctxstore.New(cliconfig.ContextStoreDir(), storeConfig)
-	md, err := st.GetMetadata(currentContext)
+// ListContexts returns all available Docker contexts.
+func (c *DockerCommand) ListContexts() ([]DockerContext, error) {
+	st := newContextStore()
+	metadatas, err := st.List()
 	if err != nil {
-		return "", err
-	}
-	dockerEP, ok := md.Endpoints[ddocker.DockerEndpoint]
-	if !ok {
-		return "", err
-	}
-	dockerEPMeta, ok := dockerEP.(ddocker.EndpointMeta)
-	if !ok {
-		return "", fmt.Errorf("expected docker.EndpointMeta, got %T", dockerEP)
+		return nil, fmt.Errorf("could not list Docker contexts: %w", err)
 	}
 
-	if dockerEPMeta.Host != "" {
-		return dockerEPMeta.Host, nil
+	// Always include "default" as the first entry
+	contexts := []DockerContext{
+		{
+			Name:      "default",
+			Endpoint:  defaultDockerHost,
+			IsCurrent: c.CurrentContextName == "" || c.CurrentContextName == "default",
+		},
 	}
 
-	// We might end up here, if the context was created with the `host` set to an empty value (i.e. '').
-	// For example:
-	// ```sh
-	// docker context create foo --docker "host="
-	// ```
-	// In such scenario, we mimic the `docker` cli and try to connect to the "default docker host".
-	return defaultDockerHost, nil
+	for _, md := range metadatas {
+		if md.Name == "default" {
+			continue
+		}
+
+		endpoint := defaultDockerHost
+		if dockerEP, ok := md.Endpoints[ddocker.DockerEndpoint]; ok {
+			if meta, ok := dockerEP.(ddocker.EndpointMeta); ok && meta.Host != "" {
+				endpoint = meta.Host
+			}
+		}
+
+		contexts = append(contexts, DockerContext{
+			Name:      md.Name,
+			Endpoint:  endpoint,
+			IsCurrent: md.Name == c.CurrentContextName,
+		})
+	}
+
+	return contexts, nil
+}
+
+// SwitchContext switches the Docker client to a different context.
+// It creates a new client and tests connectivity before closing the old one.
+func (c *DockerCommand) SwitchContext(contextName string) error {
+	dockerHost, err := resolveDockerHostForContext(contextName)
+	if err != nil {
+		return err
+	}
+
+	result, err := createDockerClient(c.OSCommand, c.Config.UserConfig.DockerApiVersion, dockerHost)
+	if err != nil {
+		return fmt.Errorf("context %q: %w", contextName, err)
+	}
+
+	// Success: close old resources and swap in the new ones.
+	// Close() drains c.Closers (SSH tunnels etc.) but not c.Client itself,
+	// so we close both explicitly.
+	c.Close()
+	c.Client.Close()
+
+	c.Client = result.Client
+	c.Closers = []io.Closer{result.Closer}
+	c.CurrentContextName = contextName
+
+	return nil
 }
