@@ -123,23 +123,32 @@ func (h *SSHHandler) createDockerHostTunnel(ctx context.Context, remoteHost stri
 }
 
 // Attempt to dial the socket until it becomes available.
+// Uses exponential backoff starting at 100ms, doubling up to 2s.
 // The retry loop will continue until the parent context is canceled.
 func (h *SSHHandler) retrySocketDial(ctx context.Context, socketPath string) error {
-	t := time.NewTicker(1 * time.Second)
-	defer t.Stop()
+	const (
+		initialBackoff = 100 * time.Millisecond
+		maxBackoff     = 5 * time.Second
+	)
+	backoff := initialBackoff
 
 	for {
+		timer := time.NewTimer(backoff)
 		select {
 		case <-ctx.Done():
+			timer.Stop()
 			return ctx.Err()
-		case <-t.C:
+		case <-timer.C:
 		}
-		// attempt to dial the socket, exit on success
-		err := h.tryDial(ctx, socketPath)
-		if err != nil {
-			continue
+
+		if err := h.tryDial(ctx, socketPath); err == nil {
+			return nil
 		}
-		return nil
+
+		backoff *= 2
+		if backoff > maxBackoff {
+			backoff = maxBackoff
+		}
 	}
 }
 
