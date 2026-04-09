@@ -593,12 +593,12 @@ func (gui *Gui) clearAllPanelData() {
 	gui.Panels.Networks.SetItems([]*commands.Network{})
 	gui.Panels.Projects.SetItems([]*commands.Project{})
 
-	gui.Panels.Containers.RerenderList()
-	gui.Panels.Services.RerenderList()
-	gui.Panels.Images.RerenderList()
-	gui.Panels.Volumes.RerenderList()
-	gui.Panels.Networks.RerenderList()
-	gui.Panels.Projects.RerenderList()
+	_ = gui.Panels.Containers.RerenderList()
+	_ = gui.Panels.Services.RerenderList()
+	_ = gui.Panels.Images.RerenderList()
+	_ = gui.Panels.Volumes.RerenderList()
+	_ = gui.Panels.Networks.RerenderList()
+	_ = gui.Panels.Projects.RerenderList()
 
 	gui.clearMainView()
 }
