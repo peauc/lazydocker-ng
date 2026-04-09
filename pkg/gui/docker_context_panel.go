@@ -2,9 +2,9 @@ package gui
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/jesseduffield/gocui"
-	"github.com/peauc/lazydocker-ng/pkg/commands"
 	"github.com/peauc/lazydocker-ng/pkg/gui/types"
 )
 
