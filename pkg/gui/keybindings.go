@@ -193,6 +193,13 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 		},
 		{
 			ViewName:    "",
+			Key:         'C',
+			Modifier:    gocui.ModNone,
+			Handler:     gui.handleDockerContextMenu,
+			Description: gui.Tr.SwitchDockerContext,
+		},
+		{
+			ViewName:    "",
 			Key:         'P',
 			Modifier:    gocui.ModNone,
 			Handler:     gui.handleToggleProjectMode,

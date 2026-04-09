@@ -144,6 +144,10 @@ type TranslationSet struct {
 	FocusImages     string
 	FocusVolumes    string
 	FocusNetworks   string
+
+	DockerContextTitle     string
+	SwitchDockerContext    string
+	SwitchingContextStatus string
 }
 
 func englishSet() TranslationSet {
@@ -295,5 +299,9 @@ func englishSet() TranslationSet {
 		FocusImages:     "focus images panel",
 		FocusVolumes:    "focus volumes panel",
 		FocusNetworks:   "focus networks panel",
+
+		DockerContextTitle:     "Docker Contexts",
+		SwitchDockerContext:    "switch Docker context",
+		SwitchingContextStatus: "switching context",
 	}
 }

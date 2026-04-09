@@ -124,6 +124,11 @@ func (self *SideListPanel[T]) renderContext(item T) error {
 		return nil
 	}
 
+	tabs := self.ContextState.GetMainTabs()
+	if len(tabs) == 0 {
+		return nil
+	}
+
 	key := self.ContextState.GetCurrentContextKey(item)
 	if !self.Gui.ShouldRefresh(key) {
 		return nil

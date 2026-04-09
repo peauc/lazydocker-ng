@@ -46,6 +46,12 @@ brew tap peauc/lazydocker-ng
 brew install peauc/lazydocker-ng/lazydocker-ng
 ```
 
+> **macOS Gatekeeper warning**: Since the binary is not yet code-signed, macOS may block it on first run. If you see a "malicious software" or "cannot be opened" alert, run the following to remove the quarantine flag:
+> ```sh
+> xattr -d com.apple.quarantine $(which lazydocker-ng)
+> ```
+> Alternatively, go to **System Settings → Privacy & Security** and click **Open Anyway**.
+
 ### Binary Release (Linux/OSX/Windows)
 
 You can manually download a binary release from [the release page](https://github.com/peauc/lazydocker-ng/releases).
