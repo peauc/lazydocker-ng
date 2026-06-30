@@ -214,7 +214,6 @@ func (gui *Gui) renderGlobalOptions() error {
 
 func (gui *Gui) renderProjectOptions() error {
 	return gui.renderOptionsMap(map[string]string{
-		"space":     gui.Tr.SwitchProject,
 		"PgUp/PgDn": gui.Tr.Scroll,
 		"← → ↑ ↓":   gui.Tr.Navigate,
 		"q":         gui.Tr.Quit,

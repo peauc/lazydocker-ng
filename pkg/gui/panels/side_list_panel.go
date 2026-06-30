@@ -47,6 +47,13 @@ type SideListPanel[T comparable] struct {
 	// a callback to invoke when the item is clicked
 	OnClick func(T) error
 
+	// a callback invoked whenever the selected item changes via a user action
+	// (keyboard navigation or click), before the main-tab context is rendered.
+	// Can be nil. It is deliberately NOT called from RerenderList's internal
+	// HandleSelect: an OnSelect that re-renders its own focused panel would
+	// otherwise recurse (RerenderList -> HandleSelect -> OnSelect -> ...).
+	OnSelect func(T) error
+
 	// returns the cells that we render to the view in a table format. The cells will
 	// be rendered with padding.
 	GetTableCells func(T) []string
@@ -79,7 +86,7 @@ type IGui interface {
 
 func (self *SideListPanel[T]) HandleClick() error {
 	itemCount := self.List.Len()
-	handleSelect := self.HandleSelect
+	handleSelect := self.handleSelectionChange
 	selectedLine := &self.SelectedIdx
 
 	if err := self.Gui.HandleClick(self.View, itemCount, selectedLine, handleSelect); err != nil {
@@ -117,6 +124,25 @@ func (self *SideListPanel[T]) HandleSelect() error {
 	self.Refocus()
 
 	return self.renderContext(item)
+}
+
+// handleSelectionChange fires the OnSelect hook (if set) for the newly selected
+// item, then renders its context. It is invoked only on genuine user-driven
+// selection changes (keyboard navigation and clicks), never from
+// RerenderList's internal HandleSelect call. Routing OnSelect through here
+// rather than through HandleSelect avoids re-entrant rerenders: an OnSelect
+// that calls RerenderList on its own (focused) panel would otherwise loop via
+// RerenderList -> HandleSelect -> OnSelect -> RerenderList.
+func (self *SideListPanel[T]) handleSelectionChange() error {
+	if self.OnSelect != nil {
+		if item, err := self.GetSelectedItem(); err == nil {
+			if err := self.OnSelect(item); err != nil {
+				return err
+			}
+		}
+	}
+
+	return self.HandleSelect()
 }
 
 func (self *SideListPanel[T]) renderContext(item T) error {
@@ -158,13 +184,13 @@ func (self *SideListPanel[T]) GetSelectedItem() (T, error) {
 func (self *SideListPanel[T]) HandleNextLine() error {
 	self.SelectNextLine()
 
-	return self.HandleSelect()
+	return self.handleSelectionChange()
 }
 
 func (self *SideListPanel[T]) HandlePrevLine() error {
 	self.SelectPrevLine()
 
-	return self.HandleSelect()
+	return self.handleSelectionChange()
 }
 
 func (self *SideListPanel[T]) HandleNextMainTab() error {

@@ -63,13 +63,29 @@ func (gui *Gui) getProjectPanel() *panels.SideListPanel[*commands.Project] {
 			}
 			return presentation.GetProjectDisplayStrings(project, selectedProjectName)
 		},
-		OnClick: func(project *commands.Project) error {
-			return gui.handleProjectSelect(nil, nil)
-		},
+		OnSelect: gui.selectProject,
 		Hide: func() bool {
 			return gui.State.UIMode != MODE_CONTAINERS || !gui.State.InDockerComposeMode
 		},
 	}
+}
+
+// selectProject makes the given project the active one and refreshes the views
+// that depend on it.
+func (gui *Gui) selectProject(project *commands.Project) error {
+	gui.Log.Info("Selected project: " + project.Name)
+
+	gui.StateMutex.Lock()
+	gui.State.Project = project
+	gui.State.CurrentDockerComposeProject = project.Name
+	gui.StateMutex.Unlock()
+
+	if err := gui.refreshContainersAndServices(); err != nil {
+		gui.Log.Error(err)
+		return err
+	}
+
+	return gui.Panels.Projects.RerenderList()
 }
 
 func (gui *Gui) refreshProjects() error {
@@ -88,43 +104,21 @@ func (gui *Gui) refreshProjects() error {
 	)
 
 	gui.Panels.Projects.SetItems(projectsList)
+
+	// Auto-select a project if none is active yet, so the containers and
+	// services panels are populated without requiring the user to move the
+	// cursor first (selection now happens on cursor move, not via a keypress).
+	gui.StateMutex.RLock()
+	noProjectSelected := gui.State.Project == nil
+	gui.StateMutex.RUnlock()
+
+	if noProjectSelected {
+		if project, err := gui.Panels.Projects.GetSelectedItem(); err == nil {
+			return gui.selectProject(project)
+		}
+	}
+
 	return gui.Panels.Projects.RerenderList()
-}
-
-func (gui *Gui) handleProjectSelect(g *gocui.Gui, v *gocui.View) error {
-	project, err := gui.Panels.Projects.GetSelectedItem()
-	if err != nil {
-		gui.Log.Error(err)
-		return nil
-	}
-
-	gui.Log.Info("Selected project: " + project.Name)
-
-	gui.StateMutex.Lock()
-	gui.State.Project = project
-	gui.State.CurrentDockerComposeProject = project.Name
-	gui.StateMutex.Unlock()
-
-	if err := gui.refreshContainersAndServices(); err != nil {
-		gui.Log.Error(err)
-		return err
-	}
-
-	if err := gui.Panels.Projects.RerenderList(); err != nil {
-		return err
-	}
-	if err := gui.Panels.Services.RerenderList(); err != nil {
-		return err
-	}
-	if err := gui.Panels.Containers.RerenderList(); err != nil {
-		return err
-	}
-
-	if err := gui.Panels.Projects.HandleSelect(); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (gui *Gui) GetProjectName() string {

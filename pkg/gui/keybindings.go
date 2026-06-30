@@ -246,13 +246,6 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 		},
 		{
 			ViewName:    "project",
-			Key:         gocui.KeySpace,
-			Modifier:    gocui.ModNone,
-			Handler:     gui.handleProjectSelect,
-			Description: gui.Tr.SwitchProject,
-		},
-		{
-			ViewName:    "project",
 			Key:         'm',
 			Modifier:    gocui.ModNone,
 			Handler:     gui.handleViewAllLogs,
