@@ -53,7 +53,7 @@ type UserConfig struct {
 	BulkCommands CustomCommands `yaml:"bulkCommands,omitempty"`
 
 	// OS determines what defaults are set for opening files and links
-	OS OSConfig `yaml:"oS,omitempty"`
+	OS OSConfig `yaml:"os,omitempty"`
 
 	// Stats determines how long lazydocker will gather container stats for, and
 	// what stat info to graph
@@ -98,7 +98,7 @@ type GuiConfig struct {
 
 	// IgnoreMouseEvents is for when you do not want to use your mouse to interact
 	// with anything
-	IgnoreMouseEvents bool `yaml:"mouseEvents,omitempty"`
+	IgnoreMouseEvents bool `yaml:"ignoreMouseEvents,omitempty"`
 
 	// Theme determines what colors and color attributes your panel borders have.
 	// I always set inactiveBorderColor to black because in my terminal it's more
@@ -211,7 +211,7 @@ type CommandTemplatesConfig struct {
 	AllLogs string `yaml:"allLogs,omitempty"`
 
 	// ViewAllLogs is the command we use when you want to see all logs in a subprocess with no filtering
-	ViewAllLogs string `yaml:"viewAlLogs,omitempty"`
+	ViewAllLogs string `yaml:"viewAllLogs,omitempty"`
 
 	// DockerComposeConfig is the command for viewing the config of your docker
 	// compose. It basically prints out the yaml from your docker-compose.yml
@@ -228,7 +228,7 @@ type CommandTemplatesConfig struct {
 	ServiceTop string `yaml:"serviceTop,omitempty"`
 
 	// List of shells that, in given order, will be tried when attaching to a container.
-	PreferredExecShells []string `yaml:"preferedExecShell,omitempty"`
+	PreferredExecShells []string `yaml:"preferredExecShell,omitempty"`
 }
 
 // OSConfig contains config on the level of the os
@@ -564,6 +564,14 @@ func loadUserConfig(fileName string, base *UserConfig) (*UserConfig, error) {
 	}
 
 	if err := yaml.Unmarshal(content, base); err != nil {
+		return nil, err
+	}
+
+	var doc yaml.MapSlice
+	if err := yaml.Unmarshal(content, &doc); err != nil {
+		return nil, err
+	}
+	if err := applyLegacyKeys(doc, base); err != nil {
 		return nil, err
 	}
 
