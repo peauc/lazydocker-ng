@@ -14,6 +14,7 @@ package config
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -498,16 +499,19 @@ type AppConfig struct {
 	UserConfig  *UserConfig
 	ConfigDir   string
 	ProjectDir  string
+	// UserConfigPath is the config.yml read at startup. It is an upstream
+	// lazydocker file while lazydocker-ng has no config.yml of its own.
+	UserConfigPath string
 }
 
 // NewAppConfig makes a new app config
 func NewAppConfig(name, version, commit, date string, buildSource string, debuggingFlag bool, composeFiles []string, projectDir string) (*AppConfig, error) {
-	configDir, err := findOrCreateConfigDir(name)
-	if err != nil {
+	location := resolveConfigLocation(name, runtime.GOOS, os.Getenv)
+	if err := os.MkdirAll(location.Dir, 0o755); err != nil {
 		return nil, err
 	}
 
-	userConfig, err := loadUserConfigWithDefaults(configDir)
+	userConfig, err := loadUserConfigWithDefaults(location.Source)
 	if err != nil {
 		return nil, err
 	}
@@ -518,66 +522,30 @@ func NewAppConfig(name, version, commit, date string, buildSource string, debugg
 	}
 
 	appConfig := &AppConfig{
-		Name:        name,
-		Version:     version,
-		Commit:      commit,
-		BuildDate:   date,
-		Debug:       debuggingFlag || os.Getenv("DEBUG") == "TRUE",
-		BuildSource: buildSource,
-		UserConfig:  userConfig,
-		ConfigDir:   configDir,
-		ProjectDir:  projectDir,
+		Name:           name,
+		Version:        version,
+		Commit:         commit,
+		BuildDate:      date,
+		Debug:          debuggingFlag || os.Getenv("DEBUG") == "TRUE",
+		BuildSource:    buildSource,
+		UserConfig:     userConfig,
+		ConfigDir:      location.Dir,
+		ProjectDir:     projectDir,
+		UserConfigPath: location.Source,
 	}
 
 	return appConfig, nil
 }
 
-func configDirForVendor(vendor string, projectName string) string {
-	envConfigDir := os.Getenv("CONFIG_DIR")
-	if envConfigDir != "" {
-		return envConfigDir
-	}
-	return filepath.Join(configHome(runtime.GOOS, os.Getenv), vendor, projectName)
-}
-
-func configDir(projectName string) string {
-	// Check for very old config (jesseduffield/lazydocker)
-	veryOldConfigDirectory := configDirForVendor("jesseduffield", "lazydocker")
-	if _, err := os.Stat(veryOldConfigDirectory); !os.IsNotExist(err) {
-		return veryOldConfigDirectory
-	}
-
-	// Check for old config (lazydocker)
-	oldConfigDirectory := configDirForVendor("", "lazydocker")
-	if _, err := os.Stat(oldConfigDirectory); !os.IsNotExist(err) {
-		return oldConfigDirectory
-	}
-
-	// Use new config directory (lazydocker-ng)
-	configDirectory := configDirForVendor("", projectName)
-	return configDirectory
-}
-
-func findOrCreateConfigDir(projectName string) (string, error) {
-	folder := configDir(projectName)
-
-	err := os.MkdirAll(folder, 0o755)
-	if err != nil {
-		return "", err
-	}
-
-	return folder, nil
-}
-
-func loadUserConfigWithDefaults(configDir string) (*UserConfig, error) {
+func loadUserConfigWithDefaults(path string) (*UserConfig, error) {
 	config := GetDefaultConfig()
 
-	return loadUserConfig(configDir, &config)
+	return loadUserConfig(path, &config)
 }
 
-func loadUserConfig(configDir string, base *UserConfig) (*UserConfig, error) {
-	fileName := filepath.Join(configDir, "config.yml")
-
+// loadUserConfig decodes the config file at path onto base, creating an empty
+// file first if there is none.
+func loadUserConfig(fileName string, base *UserConfig) (*UserConfig, error) {
 	if _, err := os.Stat(fileName); err != nil {
 		if os.IsNotExist(err) {
 			file, err := os.Create(fileName)
@@ -607,7 +575,7 @@ func loadUserConfig(configDir string, base *UserConfig) (*UserConfig, error) {
 // empty string this is because we are using the omitempty yaml directive so
 // that we don't write a heap of zero values to the user's config.yml
 func (c *AppConfig) WriteToUserConfig(updateConfig func(*UserConfig) error) error {
-	userConfig, err := loadUserConfig(c.ConfigDir, &UserConfig{})
+	userConfig, err := loadUserConfig(c.UserConfigPath, &UserConfig{})
 	if err != nil {
 		return err
 	}
@@ -625,10 +593,46 @@ func (c *AppConfig) WriteToUserConfig(updateConfig func(*UserConfig) error) erro
 		return err
 	}
 
-	return writeFileAtomic(c.ConfigFilename(), buf.Bytes())
+	if err := writeFileAtomic(c.ConfigFilename(), buf.Bytes()); err != nil {
+		return err
+	}
+	c.UserConfigPath = c.ConfigFilename()
+	return nil
 }
 
 // ConfigFilename returns the filename of the current config file
 func (c *AppConfig) ConfigFilename() string {
 	return filepath.Join(c.ConfigDir, "config.yml")
+}
+
+// UsingUpstreamConfig reports whether the config was read from upstream
+// lazydocker's folder because lazydocker-ng has none yet.
+func (c *AppConfig) UsingUpstreamConfig() bool {
+	return c.UserConfigPath != "" && c.UserConfigPath != c.ConfigFilename()
+}
+
+// EditableConfigFilename returns lazydocker-ng's own config.yml, the file that
+// edits go to. While the config is read from upstream lazydocker's folder, it
+// first copies that file there byte for byte (comments included), so
+// upstream's file is never modified and the user keeps their settings.
+func (c *AppConfig) EditableConfigFilename() (string, error) {
+	path := c.ConfigFilename()
+	if !c.UsingUpstreamConfig() {
+		return path, nil
+	}
+
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		content, err := os.ReadFile(c.UserConfigPath)
+		if err != nil {
+			return "", err
+		}
+		if err := writeFileAtomic(path, content); err != nil {
+			return "", err
+		}
+	} else if err != nil {
+		return "", err
+	}
+
+	c.UserConfigPath = path
+	return path, nil
 }
