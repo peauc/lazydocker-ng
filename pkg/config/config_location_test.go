@@ -202,7 +202,7 @@ func TestWriteToUserConfigInFallbackWritesNg(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	written, err := loadUserConfig(filepath.Join(home, "lazydocker-ng", "config.yml"), &UserConfig{})
+	written, _, err := loadUserConfig(filepath.Join(home, "lazydocker-ng", "config.yml"), &UserConfig{})
 	assert.NoError(t, err)
 	if written != nil {
 		assert.Equal(t, 9, written.Gui.ScrollHeight)

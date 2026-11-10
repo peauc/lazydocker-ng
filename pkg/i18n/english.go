@@ -14,6 +14,7 @@ type TranslationSet struct {
 	Close                                      string
 	Quit                                       string
 	ErrorTitle                                 string
+	ConfigWarningsTitle                        string
 	NoViewMachingNewLineFocusedSwitchStatement string
 	OpenConfig                                 string
 	EditConfig                                 string
@@ -250,6 +251,7 @@ func englishSet() TranslationSet {
 		CustomCommandTitle:        "Custom Command:",
 		BulkCommandTitle:          "Bulk Command:",
 		ErrorTitle:                "Error",
+		ConfigWarningsTitle:       "Config warnings",
 		LogsTitle:                 "Logs",
 		ConfigTitle:               "Config",
 		EnvTitle:                  "Env",

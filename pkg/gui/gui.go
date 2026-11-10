@@ -334,6 +334,10 @@ func (gui *Gui) Run() error {
 		return err
 	}
 
+	if len(gui.Config.Warnings) > 0 {
+		_ = gui.createConfirmationPanel(gui.Tr.ConfigWarningsTitle, strings.Join(gui.Config.Warnings, "\n"), nil, nil)
+	}
+
 	if gui.g.CurrentView() == nil {
 		viewName := gui.initiallyFocusedViewName()
 		view, err := gui.g.View(viewName)
