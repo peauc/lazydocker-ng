@@ -4,7 +4,6 @@ go 1.26.0
 
 require (
 	dario.cat/mergo v1.0.2
-	github.com/cloudfoundry/jibber_jabber v0.0.0-20151120183258-bcc4c8345a21
 	github.com/docker/cli v29.9.3+incompatible
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/fatih/color v1.19.0
@@ -25,6 +24,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spkg/bom v1.0.1
 	github.com/stretchr/testify v1.12.1
+	golang.org/x/sys v0.50.0
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 )
 
@@ -57,8 +57,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
-	github.com/onsi/ginkgo v1.8.0 // indirect
-	github.com/onsi/gomega v1.5.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe // indirect
@@ -72,7 +70,6 @@ require (
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
-	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/term v0.47.0 // indirect
 	golang.org/x/text v0.44.0 // indirect
 )

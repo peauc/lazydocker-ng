@@ -12,9 +12,6 @@ github.com/Microsoft/go-winio/pkg/guid
 ## explicit; go 1.18
 github.com/clipperhouse/uax29/v2/graphemes
 github.com/clipperhouse/uax29/v2/internal/iterators
-# github.com/cloudfoundry/jibber_jabber v0.0.0-20151120183258-bcc4c8345a21
-## explicit
-github.com/cloudfoundry/jibber_jabber
 # github.com/containerd/errdefs v1.0.0
 ## explicit; go 1.20
 github.com/containerd/errdefs
@@ -216,10 +213,6 @@ github.com/moby/sys/atomicwriter
 ## explicit; go 1.17
 github.com/moby/sys/sequential
 # github.com/morikuni/aec v1.0.0
-## explicit
-# github.com/onsi/ginkgo v1.8.0
-## explicit
-# github.com/onsi/gomega v1.5.0
 ## explicit
 # github.com/opencontainers/go-digest v1.0.0
 ## explicit; go 1.13
