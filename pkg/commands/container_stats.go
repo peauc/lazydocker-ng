@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"math"
 	"time"
 )
@@ -116,20 +117,53 @@ type ContainerStats struct {
 		} `json:"stats"`
 		Limit int64 `json:"limit"`
 	} `json:"memory_stats"`
-	Name     string `json:"name"`
-	ID       string `json:"id"`
-	Networks struct {
-		Eth0 struct {
-			RxBytes   int `json:"rx_bytes"`
-			RxPackets int `json:"rx_packets"`
-			RxErrors  int `json:"rx_errors"`
-			RxDropped int `json:"rx_dropped"`
-			TxBytes   int `json:"tx_bytes"`
-			TxPackets int `json:"tx_packets"`
-			TxErrors  int `json:"tx_errors"`
-			TxDropped int `json:"tx_dropped"`
-		} `json:"eth0"`
-	} `json:"networks"`
+	Name     string            `json:"name"`
+	ID       string            `json:"id"`
+	Networks ContainerNetworks `json:"networks"`
+}
+
+// NetworkStats holds one network interface's counters from the Docker stats API.
+type NetworkStats struct {
+	RxBytes   int `json:"rx_bytes"`
+	RxPackets int `json:"rx_packets"`
+	RxErrors  int `json:"rx_errors"`
+	RxDropped int `json:"rx_dropped"`
+	TxBytes   int `json:"tx_bytes"`
+	TxPackets int `json:"tx_packets"`
+	TxErrors  int `json:"tx_errors"`
+	TxDropped int `json:"tx_dropped"`
+}
+
+// ContainerNetworks holds a container's per-interface network stats.
+type ContainerNetworks struct {
+	// Eth0 is kept so that statPath values like ClientStats.Networks.Eth0.RxBytes keep working.
+	Eth0 NetworkStats `json:"eth0"`
+	// Total sums every interface.
+	Total NetworkStats `json:"total"`
+	// Interfaces holds the stats as Docker reports them, keyed by interface name.
+	Interfaces map[string]NetworkStats `json:"interfaces"`
+}
+
+// UnmarshalJSON decodes Docker's "networks" object, which is keyed by
+// interface name, filling Interfaces, Eth0 and the Total over all interfaces.
+func (n *ContainerNetworks) UnmarshalJSON(data []byte) error {
+	var interfaces map[string]NetworkStats
+	if err := json.Unmarshal(data, &interfaces); err != nil {
+		return err
+	}
+
+	*n = ContainerNetworks{Interfaces: interfaces, Eth0: interfaces["eth0"]}
+	for _, stats := range interfaces {
+		n.Total.RxBytes += stats.RxBytes
+		n.Total.RxPackets += stats.RxPackets
+		n.Total.RxErrors += stats.RxErrors
+		n.Total.RxDropped += stats.RxDropped
+		n.Total.TxBytes += stats.TxBytes
+		n.Total.TxPackets += stats.TxPackets
+		n.Total.TxErrors += stats.TxErrors
+		n.Total.TxDropped += stats.TxDropped
+	}
+	return nil
 }
 
 // CalculateContainerCPUPercentage calculates the cpu usage of the container as a percent of total CPU usage
@@ -139,17 +173,18 @@ func (s *ContainerStats) CalculateContainerCPUPercentage() float64 {
 	cpuUsageDelta := s.CPUStats.CPUUsage.TotalUsage - s.PrecpuStats.CPUUsage.TotalUsage
 	cpuTotalUsageDelta := s.CPUStats.SystemCPUUsage - s.PrecpuStats.SystemCPUUsage
 
-	value := float64(cpuUsageDelta*100) / float64(cpuTotalUsageDelta)
-	if math.IsNaN(value) {
-		return 0
-	}
-	return value
+	return finiteOrZero(float64(cpuUsageDelta*100) / float64(cpuTotalUsageDelta))
 }
 
 // CalculateContainerMemoryUsage calculates the memory usage of the container as a percent of total available memory
 func (s *ContainerStats) CalculateContainerMemoryUsage() float64 {
-	value := float64(s.MemoryStats.Usage*100) / float64(s.MemoryStats.Limit)
-	if math.IsNaN(value) {
+	return finiteOrZero(float64(s.MemoryStats.Usage*100) / float64(s.MemoryStats.Limit))
+}
+
+// finiteOrZero turns the NaN or ±Inf of a division by a zero delta or limit
+// into 0, so graphs and labels stay readable.
+func finiteOrZero(value float64) float64 {
+	if math.IsNaN(value) || math.IsInf(value, 0) {
 		return 0
 	}
 	return value

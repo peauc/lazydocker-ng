@@ -34,8 +34,8 @@ func RenderStats(userConfig *config.UserConfig, container *commands.Container, v
 	}
 
 	pidsCount := fmt.Sprintf("PIDs: %d", stats.ClientStats.PidsStats.Current)
-	dataReceived := fmt.Sprintf("Traffic received: %s", utils.FormatDecimalBytes(stats.ClientStats.Networks.Eth0.RxBytes))
-	dataSent := fmt.Sprintf("Traffic sent: %s", utils.FormatDecimalBytes(stats.ClientStats.Networks.Eth0.TxBytes))
+	dataReceived := fmt.Sprintf("Traffic received: %s", utils.FormatDecimalBytes(stats.ClientStats.Networks.Total.RxBytes))
+	dataSent := fmt.Sprintf("Traffic sent: %s", utils.FormatDecimalBytes(stats.ClientStats.Networks.Total.TxBytes))
 
 	originalStats, err := utils.MarshalIntoYaml(stats)
 	if err != nil {
