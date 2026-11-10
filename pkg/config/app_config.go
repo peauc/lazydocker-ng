@@ -614,14 +614,15 @@ func (c *AppConfig) UsingUpstreamConfig() bool {
 // EditableConfigFilename returns lazydocker-ng's own config.yml, the file that
 // edits go to. While the config is read from upstream lazydocker's folder, it
 // first copies that file there byte for byte (comments included), so
-// upstream's file is never modified and the user keeps their settings.
+// upstream's file is never modified and the user keeps their settings. An
+// empty lazydocker-ng config.yml is replaced the same way.
 func (c *AppConfig) EditableConfigFilename() (string, error) {
 	path := c.ConfigFilename()
 	if !c.UsingUpstreamConfig() {
 		return path, nil
 	}
 
-	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+	if info, err := os.Stat(path); errors.Is(err, os.ErrNotExist) || (err == nil && info.Size() == 0) {
 		content, err := os.ReadFile(c.UserConfigPath)
 		if err != nil {
 			return "", err

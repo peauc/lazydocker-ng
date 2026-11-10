@@ -211,3 +211,24 @@ func TestWriteToUserConfigInFallbackWritesNg(t *testing.T) {
 	upstreamNow, _ := os.ReadFile(upstreamFile)
 	assert.Equal(t, scrollHeight("9"), string(upstreamNow))
 }
+
+// An empty lazydocker-ng config.yml is the app's own artifact (it creates one
+// on a first run without any config), so it must not hide upstream's config.
+func TestNewAppConfigEmptyNgConfigFallsBackToUpstream(t *testing.T) {
+	home := isolateHome(t)
+	ngFile := filepath.Join(home, "lazydocker-ng", "config.yml")
+	writeFile(t, ngFile, "")
+	upstream := "# keep me\n" + scrollHeight("9")
+	writeFile(t, filepath.Join(home, "lazydocker", "config.yml"), upstream)
+
+	ac := newAppConfigForTest(t)
+
+	assert.Equal(t, 9, ac.UserConfig.Gui.ScrollHeight)
+	assert.True(t, ac.UsingUpstreamConfig())
+
+	path, err := ac.EditableConfigFilename()
+	assert.NoError(t, err)
+	assert.Equal(t, ngFile, path)
+	copied, _ := os.ReadFile(ngFile)
+	assert.Equal(t, upstream, string(copied), "the first edit copies upstream over the empty file")
+}

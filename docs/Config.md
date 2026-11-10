@@ -14,7 +14,7 @@ Changes to the user config will only take place after closing and re-opening laz
 
 If `XDG_CONFIG_HOME` is set, the file is `$XDG_CONFIG_HOME/lazydocker-ng/config.yml` on every OS. `CONFIG_DIR` replaces the folder.
 
-**Coming from lazydocker:** if lazydocker-ng has no `config.yml` yet, it reads lazydocker's (`jesseduffield/lazydocker/config.yml`, then `lazydocker/config.yml`, in the same config folder) and never changes it. The first time you edit the config from lazydocker-ng (`e` or `o` in the project panel), it saves a copy in its own folder and uses that from then on.
+**Coming from lazydocker:** if lazydocker-ng has no `config.yml` yet (or only the empty one it creates on a first run), it reads lazydocker's (`jesseduffield/lazydocker/config.yml`, then `lazydocker/config.yml`, in the same config folder) and never changes it. The first time you edit the config from lazydocker-ng (`e` or `o` in the project panel), it saves a copy in its own folder and uses that from then on.
 
 ## Default:
 
