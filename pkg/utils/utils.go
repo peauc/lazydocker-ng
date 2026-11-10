@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/go-errors/errors"
-	"github.com/jesseduffield/gocui"
 	"github.com/mattn/go-runewidth"
 
 	// "github.com/jesseduffield/yaml"
@@ -96,13 +95,6 @@ func ColoredYamlString(str string) string {
 		}
 	}
 	return p.PrintTokens(tokens)
-}
-
-// MultiColoredString takes a string and an array of colour attributes and returns a colored
-// string with those attributes
-func MultiColoredString(str string, colorAttribute ...color.Attribute) string {
-	colour := color.New(colorAttribute...)
-	return ColoredStringDirect(str, colour)
 }
 
 // ColoredStringDirect used for aggregating a few color attributes rather than
@@ -241,29 +233,6 @@ func ApplyTemplate(str string, object any) string {
 	var buf bytes.Buffer
 	_ = template.Must(template.New("").Parse(str)).Execute(&buf, object)
 	return buf.String()
-}
-
-// GetGocuiAttribute gets the gocui color attribute from the string
-func GetGocuiAttribute(key string) gocui.Attribute {
-	colorMap := map[string]gocui.Attribute{
-		"default":   gocui.ColorDefault,
-		"black":     gocui.ColorBlack,
-		"red":       gocui.ColorRed,
-		"green":     gocui.ColorGreen,
-		"yellow":    gocui.ColorYellow,
-		"blue":      gocui.ColorBlue,
-		"magenta":   gocui.ColorMagenta,
-		"cyan":      gocui.ColorCyan,
-		"white":     gocui.ColorWhite,
-		"bold":      gocui.AttrBold,
-		"reverse":   gocui.AttrReverse,
-		"underline": gocui.AttrUnderline,
-	}
-	value, present := colorMap[key]
-	if present {
-		return value
-	}
-	return gocui.ColorDefault
 }
 
 // GetColorAttribute gets the color attribute from the string
