@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"math"
 	"regexp"
 	"sort"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/go-errors/errors"

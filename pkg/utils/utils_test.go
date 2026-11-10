@@ -319,3 +319,11 @@ quux:
 		}
 	}
 }
+
+// Command templates build shell commands, not HTML: values must be inserted
+// as they are.
+func TestApplyTemplateDoesNotHTMLEscape(t *testing.T) {
+	value := struct{ Name string }{Name: `it's a&b <c> "d" +e`}
+
+	assert.Equal(t, `echo it's a&b <c> "d" +e`, ApplyTemplate("echo {{ .Name }}", value))
+}
