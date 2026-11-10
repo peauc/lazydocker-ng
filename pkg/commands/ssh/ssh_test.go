@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -35,11 +36,15 @@ func TestHelperProcess(t *testing.T) {
 		// process exits 0 while the forward lives on elsewhere
 		os.Exit(0)
 	case "fork0":
-		// as exit0, but a child keeps the inherited stderr open
+		// as exit0, but a child keeps the inherited stderr open; its PID goes
+		// to HELPER_PIDFILE so the test can stop it (a running test binary
+		// cannot be deleted on Windows)
 		child := exec.Command(os.Args[0], "-test.run=TestHelperProcess", "--", "sleep-short")
 		child.Env = os.Environ()
 		child.Stderr = os.Stderr
-		_ = child.Start()
+		if child.Start() == nil {
+			_ = os.WriteFile(os.Getenv("HELPER_PIDFILE"), []byte(strconv.Itoa(child.Process.Pid)), 0o600)
+		}
 		os.Exit(0)
 	}
 	os.Exit(0)
@@ -48,11 +53,12 @@ func TestHelperProcess(t *testing.T) {
 // fakeSSH records the ssh command it is asked to start and runs the helper
 // process instead.
 type fakeSSH struct {
-	mode   string
-	err    error
-	args   []string
-	cmd    *exec.Cmd
-	starts int
+	mode    string
+	err     error
+	args    []string
+	cmd     *exec.Cmd
+	starts  int
+	pidFile string // fork0: where the helper writes its child's PID
 }
 
 func (f *fakeSSH) start(cmd *exec.Cmd) error {
@@ -64,7 +70,7 @@ func (f *fakeSSH) start(cmd *exec.Cmd) error {
 	}
 	cmd.Path = os.Args[0]
 	cmd.Args = []string{os.Args[0], "-test.run=TestHelperProcess", "--", f.mode}
-	cmd.Env = append(os.Environ(), "GO_WANT_HELPER_PROCESS=1")
+	cmd.Env = append(os.Environ(), "GO_WANT_HELPER_PROCESS=1", "HELPER_PIDFILE="+f.pidFile)
 	cmd.Err = nil // ssh may not be on PATH in CI
 	return cmd.Start()
 }
@@ -124,6 +130,28 @@ func newTestHandler(t *testing.T, ssh *fakeSSH, dial func(context.Context, strin
 		tempDir:       dirs.make,
 		socketTimeout: timeout,
 	}, dirs
+}
+
+// newForkingSSH returns a fake ssh in fork0 mode whose background child is
+// killed when the test ends.
+func newForkingSSH(t *testing.T) *fakeSSH {
+	t.Helper()
+	ssh := &fakeSSH{mode: "fork0", pidFile: filepath.Join(t.TempDir(), "child.pid")}
+	t.Cleanup(func() {
+		raw, err := os.ReadFile(ssh.pidFile)
+		if err != nil {
+			return
+		}
+		pid, err := strconv.Atoi(string(raw))
+		if err != nil {
+			return
+		}
+		if child, err := os.FindProcess(pid); err == nil {
+			_ = child.Kill()
+			_, _ = child.Wait()
+		}
+	})
+	return ssh
 }
 
 func assertGone(t *testing.T, path string) {
@@ -271,7 +299,7 @@ func TestTunnelSSHExitsZeroKeepsDialing(t *testing.T) {
 
 // A backgrounded child may keep ssh's stderr open; Close must not wait for it.
 func TestTunnelCloseDoesNotWaitForChildrenHoldingStderr(t *testing.T) {
-	ssh := &fakeSSH{mode: "fork0"}
+	ssh := newForkingSSH(t)
 	handler, _ := newTestHandler(t, ssh, dialAfter(1), 5*time.Second)
 
 	result, err := handler.HandleSSHDockerHost("ssh://myhost@192.168.5.178")
@@ -280,4 +308,19 @@ func TestTunnelCloseDoesNotWaitForChildrenHoldingStderr(t *testing.T) {
 	started := time.Now()
 	assert.NoError(t, result.Closer.Close())
 	assert.Less(t, time.Since(started), 3*time.Second)
+}
+
+// ssh with ForkAfterAuthentication exits 0 while its background child keeps
+// stderr open, so Wait reports exec.ErrWaitDelay; that is still a clean exit
+// and the tunnel must keep waiting for a socket that is slow to come up.
+func TestTunnelSSHForksKeepsDialing(t *testing.T) {
+	ssh := newForkingSSH(t)
+	handler, _ := newTestHandler(t, ssh, dialAfter(4), 6*time.Second)
+
+	result, err := handler.HandleSSHDockerHost("ssh://myhost@192.168.5.178")
+
+	assert.NoError(t, err)
+	if err == nil {
+		assert.NoError(t, result.Closer.Close())
+	}
 }

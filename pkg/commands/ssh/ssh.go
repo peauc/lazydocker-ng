@@ -108,6 +108,16 @@ func watchProcess(cmd *exec.Cmd) *process {
 	return p
 }
 
+// exitedCleanly reports whether ssh exited 0. Wait reports exec.ErrWaitDelay
+// when a backgrounded child keeps stderr open after a clean exit; that still
+// counts as clean.
+func (p *process) exitedCleanly() bool {
+	if p.waitErr == nil {
+		return true
+	}
+	return errors.Is(p.waitErr, exec.ErrWaitDelay) && p.cmd.ProcessState != nil && p.cmd.ProcessState.Success()
+}
+
 func (p *process) exited() bool {
 	select {
 	case <-p.done:
@@ -237,7 +247,7 @@ func (h *SSHHandler) retrySocketDial(ctx context.Context, socketPath string, pro
 			return ctx.Err()
 		case <-exited:
 			timer.Stop()
-			if proc.waitErr != nil {
+			if !proc.exitedCleanly() {
 				return fmt.Errorf("%w: %w", errSSHExited, proc.waitErr)
 			}
 			exited = nil
