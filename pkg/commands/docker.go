@@ -12,12 +12,12 @@ import (
 	"sync"
 	"time"
 
+	"dario.cat/mergo"
 	cliconfig "github.com/docker/cli/cli/config"
 	ddocker "github.com/docker/cli/cli/context/docker"
 	ctxstore "github.com/docker/cli/cli/context/store"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
-	"github.com/imdario/mergo"
 	"github.com/peauc/lazydocker-ng/pkg/commands/ssh"
 	"github.com/peauc/lazydocker-ng/pkg/config"
 	"github.com/peauc/lazydocker-ng/pkg/i18n"

@@ -3,6 +3,7 @@ module github.com/peauc/lazydocker-ng
 go 1.26.0
 
 require (
+	dario.cat/mergo v1.0.2
 	github.com/boz/go-throttle v0.0.0-20160922054636-fdc4eab740c1
 	github.com/cloudfoundry/jibber_jabber v0.0.0-20151120183258-bcc4c8345a21
 	github.com/docker/cli v29.9.3+incompatible
@@ -11,7 +12,6 @@ require (
 	github.com/go-errors/errors v1.5.1
 	github.com/goccy/go-yaml v1.11.0
 	github.com/gookit/color v1.5.0
-	github.com/imdario/mergo v0.3.16
 	github.com/integrii/flaggy v1.8.0
 	github.com/jesseduffield/asciigraph v0.0.0-20190605104717-6d88e39309ee
 	github.com/jesseduffield/gocui v0.3.1-0.20251223154739-d4b2428354c3
