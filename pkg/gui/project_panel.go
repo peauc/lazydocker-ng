@@ -201,11 +201,19 @@ func (gui *Gui) renderDockerComposeConfig(project *commands.Project) tasks.TaskF
 }
 
 func (gui *Gui) handleOpenConfig(g *gocui.Gui, v *gocui.View) error {
-	return gui.openFile(gui.Config.ConfigFilename())
+	path, err := gui.Config.EditableConfigFilename()
+	if err != nil {
+		return gui.createErrorPanel(err.Error())
+	}
+	return gui.openFile(path)
 }
 
 func (gui *Gui) handleEditConfig(g *gocui.Gui, v *gocui.View) error {
-	return gui.editFile(gui.Config.ConfigFilename())
+	path, err := gui.Config.EditableConfigFilename()
+	if err != nil {
+		return gui.createErrorPanel(err.Error())
+	}
+	return gui.editFile(path)
 }
 
 // handleViewAllLogs switches to a subprocess viewing all the logs from docker-compose
