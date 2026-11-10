@@ -1,4 +1,3 @@
-.circleci
 .github
 docs
 test
@@ -6,6 +5,10 @@ test
 .goreleaser.yml
 *.md
 coverage.txt
+profile.out
+dist
+.idea
+.vscode
 Dockerfile
 LICENSE
 test.sh
