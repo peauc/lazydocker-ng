@@ -1,8 +1,8 @@
-A simple terminal UI for both docker and docker-compose, written in Go with the [gocui](https://github.com/jroimartin/gocui "gocui") library.
+A simple terminal UI for both docker and docker-compose, written in Go with the [gocui](https://github.com/jesseduffield/gocui "gocui") library.
 
 Continuing the great work of Jesse Duffield and other contributors of [the original project](https://github.com/jesseduffield/lazydocker).
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/jesseduffield/lazydocker)](https://goreportcard.com/report/github.com/jesseduffield/lazydocker)
+[![Go Report Card](https://goreportcard.com/badge/github.com/peauc/lazydocker-ng)](https://goreportcard.com/report/github.com/peauc/lazydocker-ng)
 ![GitHub repo size](https://img.shields.io/github/repo-size/peauc/lazydocker-ng)
 [![GitHub Releases](https://img.shields.io/github/downloads/peauc/lazydocker-ng/total)](https://github.com/peauc/lazydocker-ng/releases)
 [![GitHub tag](https://img.shields.io/github/tag/peauc/lazydocker-ng.svg)](https://github.com/peauc/lazydocker-ng/releases/latest)
@@ -66,16 +66,10 @@ The script installs downloaded binary to `$HOME/.local/bin` directory by default
 
 ### Go
 
-Required Go Version >= **1.19**
+Required Go version >= **1.25**
 
 ```sh
 go install github.com/peauc/lazydocker-ng@latest
-```
-
-Required Go version >= **1.8**, <= **1.17**
-
-```sh
-go get github.com/peauc/lazydocker-ng
 ```
 
 ### Arch Linux AUR
@@ -88,45 +82,19 @@ paru -S lazydocker-ng
 
 ### Docker
 
-1. <details><summary>Click if you have an ARM device</summary><p>
-   - If you have a ARM 32 bit v6 architecture
+1. Build the image (it is built for your machine's architecture, amd64 or arm64)
 
    ```sh
-   docker build -t lazydocker \
-   --build-arg BASE_IMAGE_BUILDER=arm32v6/golang \
-   --build-arg GOARCH=arm \
-   --build-arg GOARM=6 \
-   https://github.com/peauc/lazydocker-ng.git
+   docker build -t lazydocker-ng https://github.com/peauc/lazydocker-ng.git
    ```
-
-   - If you have a ARM 32 bit v7 architecture
-
-     ```sh
-     docker build -t lazydocker \
-     --build-arg BASE_IMAGE_BUILDER=arm32v7/golang \
-     --build-arg GOARCH=arm \
-     --build-arg GOARM=7 \
-     https://github.com/peauc/lazydocker-ng.git
-     ```
-
-   - If you have a ARM 64 bit v8 architecture
-
-     ```sh
-     docker build -t lazydocker \
-     --build-arg BASE_IMAGE_BUILDER=arm64v8/golang \
-     --build-arg GOARCH=arm64 \
-     https://github.com/peauc/lazydocker-ng.git
-     ```
-
-   </p></details>
 
 1. Run the container
 
    ```sh
    docker run --rm -it -v \
    /var/run/docker.sock:/var/run/docker.sock \
-   -v /yourpath:/.config/peauc/lazydocker-ng \
-   lazydocker
+   -v /yourpath:/.config/lazydocker-ng \
+   lazydocker-ng
    ```
 
    - Don't forget to change `/yourpath` to an actual path you created to store lazydocker's config
@@ -134,14 +102,14 @@ paru -S lazydocker-ng
    - You might want to create an alias, for example:
 
      ```sh
-     echo "alias lzd='docker run --rm -it -v /var/run/docker.sock:/var/run/docker.sock -v /yourpath/config:/.config/peauc/lazydocker-ng lazydocker-ng'" >> ~/.zshrc
+     echo "alias lzd='docker run --rm -it -v /var/run/docker.sock:/var/run/docker.sock -v /yourpath/config:/.config/lazydocker-ng lazydocker-ng'" >> ~/.zshrc
      ```
 
 For development, you can build the image using:
 
 ```sh
 git clone https://github.com/peauc/lazydocker-ng.git
-cd lazydocker
+cd lazydocker-ng
 docker build -t lazydocker-ng \
     --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
     --build-arg VCS_REF=`git rev-parse --short HEAD` \
@@ -150,7 +118,7 @@ docker build -t lazydocker-ng \
 ```
 
 If you encounter a compatibility issue with Docker bundled binary, try rebuilding
-the image with the build argument `--build-arg DOCKER_VERSION="v$(docker -v | cut -d" " -f3 | rev | cut -c 2- | rev)"`
+the image with the build argument `--build-arg DOCKER_VERSION="$(docker version --format '{{.Client.Version}}')"`
 so that the bundled docker binary matches your host docker binary version.
 
 ### Manual
@@ -218,7 +186,7 @@ In the future I want to make this the default, but for now there are some CPU is
 
 Because we support mouse events, you will need to hold option while dragging the mouse to indicate you're trying to select text rather than click on something. Alternatively you can disable mouse events via the `gui.ignoreMouseEvents` config value.
 
-Mac Users: See [Issue #190](https://github.com/jesseduffield/lazydocker/issues/190) for other options.
+Mac Users: See [upstream lazydocker issue #190](https://github.com/jesseduffield/lazydocker/issues/190) for other options.
 
 ### Why can't I see my container's logs?
 

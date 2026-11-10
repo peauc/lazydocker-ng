@@ -8,31 +8,18 @@ Changes to the user config will only take place after closing and re-opening laz
 
 ### Locations:
 
-- OSX: `~/Library/Application Support/jesseduffield/lazydocker/config.yml`
-- Linux: `~/.config/lazydocker/config.yml`
-- Windows: `C:\Users\<User>\AppData\Roaming\lazydocker\config.yml`
+- macOS: `~/Library/Application Support/lazydocker-ng/config.yml`
+- Linux: `~/.config/lazydocker-ng/config.yml`
+- Windows: `%APPDATA%\lazydocker-ng\config.yml`
 
-JSON schema is available for `config.yml` so that IntelliSense in Visual Studio Code
-(completion and error checking) is automatically enabled when the [YAML Red Hat][yaml]
-extension is installed. However, note that automatic schema detection only works
-if your config file is in one of the standard paths mentioned above. If you
-override the path to the file, you can still make IntelliSense work by adding
-
-```yaml
-# yaml-language-server: $schema=https://json.schemastore.org/lazydocker.json
-```
-
-to the top of your config file or via [Visual Studio Code settings.json config][settings].
-
-[yaml]: https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml
-[settings]: https://github.com/redhat-developer/vscode-yaml#associating-a-schema-to-a-glob-pattern-via-yamlschemas
+If `XDG_CONFIG_HOME` is set, the file is `$XDG_CONFIG_HOME/lazydocker-ng/config.yml` on every OS. `CONFIG_DIR` replaces the folder.
 
 ## Default:
 
 ```yml
 gui:
   scrollHeight: 2
-  language: "auto" # one of 'auto' | 'en' | 'pl' | 'nl' | 'de' | 'tr'
+  language: "auto" # one of 'auto' | 'en' | 'de' | 'es' | 'fr' | 'nl' | 'pl' | 'pt' | 'tr' | 'zh'
   border: "rounded" # one of 'rounded' | 'single' | 'double' | 'hidden'
   theme:
     activeBorderColor:
@@ -96,7 +83,7 @@ stats:
 dockerApiVersion: ''
 ```
 
-## To see what all of the config options mean, and what other options you can set, see [here](https://godoc.org/github.com/jesseduffield/lazydocker/pkg/config)
+## To see what all of the config options mean, and what other options you can set, see [here](https://pkg.go.dev/github.com/peauc/lazydocker-ng/pkg/config)
 
 ## Color Attributes:
 
@@ -130,9 +117,9 @@ customCommands:
 ```
 
 You may use the following go templates (such as `{{ .Container.ID }}` above) in your commands:
-- `{{ .DockerCompose }}`: the docker compose command (default: `docker-compose`)
-- [`{{ .Container }}`](https://pkg.go.dev/github.com/jesseduffield/lazydocker@v0.20.0/pkg/commands#Container) and its fields. For example: `{{ .Container.Container.ImageID }}`
-- [`{{ .Service }}`](https://pkg.go.dev/github.com/jesseduffield/lazydocker@v0.20.0/pkg/commands#Service) and its fields. For example: `{{ .Service.Name }}`
+- `{{ .DockerCompose }}`: the docker compose command (default: `docker compose`)
+- [`{{ .Container }}`](https://pkg.go.dev/github.com/peauc/lazydocker-ng/pkg/commands#Container) and its fields. For example: `{{ .Container.Container.ImageID }}`
+- [`{{ .Service }}`](https://pkg.go.dev/github.com/peauc/lazydocker-ng/pkg/commands#Service) and its fields. For example: `{{ .Service.Name }}`
 
 ## Replacements
 
