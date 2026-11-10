@@ -7,7 +7,17 @@ import (
 	"github.com/jesseduffield/yaml"
 )
 
+// isolateConfigDir points CONFIG_DIR at a fresh temp dir so tests never read
+// or write the developer's real config folder.
+func isolateConfigDir(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	t.Setenv("CONFIG_DIR", dir)
+	return dir
+}
+
 func TestDockerComposeCommandNoFiles(t *testing.T) {
+	isolateConfigDir(t)
 	composeFiles := []string{}
 	conf, err := NewAppConfig("name", "version", "commit", "date", "buildSource", false, composeFiles, "projectDir")
 	if err != nil {
@@ -22,6 +32,7 @@ func TestDockerComposeCommandNoFiles(t *testing.T) {
 }
 
 func TestDockerComposeCommandSingleFile(t *testing.T) {
+	isolateConfigDir(t)
 	composeFiles := []string{"one.yml"}
 	conf, err := NewAppConfig("name", "version", "commit", "date", "buildSource", false, composeFiles, "projectDir")
 	if err != nil {
@@ -36,6 +47,7 @@ func TestDockerComposeCommandSingleFile(t *testing.T) {
 }
 
 func TestDockerComposeCommandMultipleFiles(t *testing.T) {
+	isolateConfigDir(t)
 	composeFiles := []string{"one.yml", "two.yml", "three.yml"}
 	conf, err := NewAppConfig("name", "version", "commit", "date", "buildSource", false, composeFiles, "projectDir")
 	if err != nil {
@@ -50,6 +62,7 @@ func TestDockerComposeCommandMultipleFiles(t *testing.T) {
 }
 
 func TestWritingToConfigFile(t *testing.T) {
+	isolateConfigDir(t)
 	// init the AppConfig
 	emptyComposeFiles := []string{}
 	conf, err := NewAppConfig("name", "version", "commit", "date", "buildSource", false, emptyComposeFiles, "projectDir")

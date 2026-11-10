@@ -13,6 +13,7 @@
 package config
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
@@ -616,12 +617,16 @@ func (c *AppConfig) WriteToUserConfig(updateConfig func(*UserConfig) error) erro
 		return err
 	}
 
-	file, err := os.OpenFile(c.ConfigFilename(), os.O_WRONLY|os.O_CREATE, 0o666)
-	if err != nil {
+	var buf bytes.Buffer
+	encoder := yaml.NewEncoder(&buf)
+	if err := encoder.Encode(userConfig); err != nil {
+		return err
+	}
+	if err := encoder.Close(); err != nil {
 		return err
 	}
 
-	return yaml.NewEncoder(file).Encode(userConfig)
+	return writeFileAtomic(c.ConfigFilename(), buf.Bytes())
 }
 
 // ConfigFilename returns the filename of the current config file
