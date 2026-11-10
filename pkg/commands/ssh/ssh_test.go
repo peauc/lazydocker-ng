@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -173,4 +175,63 @@ func TestHandleSSHDockerHostIgnoresNonSSH(t *testing.T) {
 		assert.False(t, result.Created, host)
 		assert.Equal(t, 0, ssh.starts, host)
 	}
+}
+
+func TestTunnelSSHArgs(t *testing.T) {
+	ssh := &fakeSSH{mode: "sleep"}
+	handler, dirs := newTestHandler(t, ssh, dialAfter(0), 5*time.Second)
+
+	result, err := handler.HandleSSHDockerHost("ssh://myhost@192.168.5.178")
+	assert.NoError(t, err)
+	t.Cleanup(func() { _ = result.Closer.Close() })
+
+	if assert.Len(t, dirs.created, 1) {
+		assert.Equal(t, []string{
+			"ssh", "-N",
+			"-o", "BatchMode=yes",
+			"-o", "ExitOnForwardFailure=yes",
+			"-L", filepath.Join(dirs.created[0], "docker.sock") + ":/var/run/docker.sock",
+			"--", "ssh://myhost@192.168.5.178",
+		}, ssh.args)
+	}
+}
+
+func TestTunnelSSHExitsEarly(t *testing.T) {
+	ssh := &fakeSSH{mode: "fail"}
+	handler, dirs := newTestHandler(t, ssh, dialAfter(1_000_000), 5*time.Second)
+
+	started := time.Now()
+	_, err := handler.HandleSSHDockerHost("ssh://myhost@192.168.5.178")
+
+	assert.Less(t, time.Since(started), 2*time.Second, "should not wait for the socket timeout")
+	assert.ErrorContains(t, err, "Permission denied (publickey).")
+	assert.ErrorContains(t, err, "BatchMode=yes")
+	if assert.Len(t, dirs.created, 1) {
+		assertGone(t, dirs.created[0])
+	}
+}
+
+func TestTunnelSocketPathTooLong(t *testing.T) {
+	ssh := &fakeSSH{mode: "sleep"}
+	handler, dirs := newTestHandler(t, ssh, dialAfter(0), time.Second)
+	handler.tempDir = func(string, string) (string, error) {
+		dir := filepath.Join(os.TempDir(), strings.Repeat("x", 120))
+		dirs.created = append(dirs.created, dir)
+		return dir, os.MkdirAll(dir, 0o700)
+	}
+
+	_, err := handler.HandleSSHDockerHost("ssh://myhost@192.168.5.178")
+
+	assert.ErrorContains(t, err, "103")
+	assert.Equal(t, 0, ssh.starts)
+	assertGone(t, dirs.created[0])
+}
+
+func TestTailBufferKeepsLastBytes(t *testing.T) {
+	b := &tailBuffer{max: 8}
+
+	_, _ = b.Write([]byte("01234"))
+	_, _ = b.Write([]byte("56789"))
+
+	assert.Equal(t, "23456789", b.String())
 }

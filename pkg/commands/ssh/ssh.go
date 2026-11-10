@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -83,6 +84,12 @@ func (noopCloser) Close() error { return nil }
 
 // processExitTimeout bounds how long Close waits for a killed ssh to exit.
 const processExitTimeout = 5 * time.Second
+
+// maxUnixSocketPath is the longest unix socket path every supported OS
+// accepts (macOS: 104 bytes including the terminating NUL; Linux allows 107).
+const maxUnixSocketPath = 103
+
+var errSSHExited = errors.New("ssh exited before the tunnel was ready")
 
 // process is a started command whose exit is observed by one goroutine, so
 // several callers can wait for it.
@@ -159,8 +166,13 @@ func (h *SSHHandler) createDockerHostTunnel(ctx context.Context, remoteHost stri
 		return nil, fmt.Errorf("create ssh tunnel tmp dir: %w", err)
 	}
 	localSocket := filepath.Join(socketDir, "docker.sock")
+	if len(localSocket) > maxUnixSocketPath {
+		_ = os.RemoveAll(socketDir)
+		return nil, fmt.Errorf("ssh tunnel socket path %q is %d bytes, over the %d-byte limit for unix sockets; set TMPDIR to a shorter directory", localSocket, len(localSocket), maxUnixSocketPath)
+	}
 
-	cmd, err := h.tunnelSSH(ctx, remoteHost, localSocket)
+	stderr := &tailBuffer{max: 4096}
+	cmd, err := h.tunnelSSH(ctx, remoteHost, localSocket, stderr)
 	if err != nil {
 		_ = os.RemoveAll(socketDir)
 		return nil, fmt.Errorf("tunnel docker host over ssh: %w", err)
@@ -172,8 +184,12 @@ func (h *SSHHandler) createDockerHostTunnel(ctx context.Context, remoteHost stri
 	dialCtx, cancel := context.WithTimeout(ctx, h.socketTimeout)
 	defer cancel()
 
-	if err := h.retrySocketDial(dialCtx, localSocket); err != nil {
+	if err := h.retrySocketDial(dialCtx, localSocket, proc); err != nil {
 		_ = stopTunnel(h.oSCommand, proc, socketDir)
+		if errors.Is(err, errSSHExited) {
+			return nil, fmt.Errorf("%w; ssh said: %s; lazydocker-ng runs ssh with BatchMode=yes, so `ssh %s` must work without a password or host-key prompt (use ssh-agent, and connect once to accept the host key)",
+				err, strings.TrimSpace(stderr.String()), redactedHost(remoteHost))
+		}
 		return nil, fmt.Errorf("ssh tunneled socket %s never became available within %s: %w", localSocket, h.socketTimeout, err)
 	}
 
@@ -187,11 +203,19 @@ func (h *SSHHandler) createDockerHostTunnel(ctx context.Context, remoteHost stri
 	}, nil
 }
 
+// redactedHost hides a password in an ssh:// URL before it is shown to users.
+func redactedHost(host string) string {
+	if u, err := url.Parse(host); err == nil {
+		return u.Redacted()
+	}
+	return host
+}
+
 // Attempt to dial the socket until it becomes available.
 // Uses exponential backoff starting at 100ms, doubling up to 5s.
-// The retry loop continues until ctx is done; the error then includes the
-// last dial error so users can see why.
-func (h *SSHHandler) retrySocketDial(ctx context.Context, socketPath string) error {
+// The retry loop continues until ctx is done (the error then includes the
+// last dial error so users can see why) or until ssh exits.
+func (h *SSHHandler) retrySocketDial(ctx context.Context, socketPath string, proc *process) error {
 	const (
 		initialBackoff = 100 * time.Millisecond
 		maxBackoff     = 5 * time.Second
@@ -208,6 +232,12 @@ func (h *SSHHandler) retrySocketDial(ctx context.Context, socketPath string) err
 				return fmt.Errorf("%w (last dial error: %w)", ctx.Err(), lastErr)
 			}
 			return ctx.Err()
+		case <-proc.done:
+			timer.Stop()
+			if proc.waitErr != nil {
+				return fmt.Errorf("%w: %w", errSSHExited, proc.waitErr)
+			}
+			return errSSHExited
 		case <-timer.C:
 		}
 
@@ -229,12 +259,48 @@ func (h *SSHHandler) tryDial(ctx context.Context, socketPath string) error {
 	return nil
 }
 
-func (h *SSHHandler) tunnelSSH(ctx context.Context, host, localSocket string) (*exec.Cmd, error) {
-	cmd := exec.CommandContext(ctx, "ssh", "-L", localSocket+":/var/run/docker.sock", host, "-N")
+// tunnelSSH starts ssh forwarding localSocket to the remote docker socket.
+// BatchMode makes a password or host-key prompt fail instead of hanging,
+// ExitOnForwardFailure makes ssh exit when the forward can't be set up, and
+// "--" keeps the host from being read as an option. -N must come before "--":
+// anything after the destination would be the remote command.
+func (h *SSHHandler) tunnelSSH(ctx context.Context, host, localSocket string, stderr io.Writer) (*exec.Cmd, error) {
+	cmd := exec.CommandContext(ctx, "ssh",
+		"-N",
+		"-o", "BatchMode=yes",
+		"-o", "ExitOnForwardFailure=yes",
+		"-L", localSocket+":/var/run/docker.sock",
+		"--", host,
+	)
+	cmd.Stderr = stderr
 	h.oSCommand.PrepareForChildren(cmd)
 	err := h.startCmd(cmd)
 	if err != nil {
 		return nil, err
 	}
 	return cmd, nil
+}
+
+// tailBuffer is an io.Writer that keeps only the last max bytes written, so a
+// long-running ssh's stderr can be quoted in an error without growing forever.
+type tailBuffer struct {
+	mu  sync.Mutex
+	b   []byte
+	max int
+}
+
+func (t *tailBuffer) Write(p []byte) (int, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.b = append(t.b, p...)
+	if over := len(t.b) - t.max; over > 0 {
+		t.b = append(t.b[:0:0], t.b[over:]...)
+	}
+	return len(p), nil
+}
+
+func (t *tailBuffer) String() string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return string(t.b)
 }
