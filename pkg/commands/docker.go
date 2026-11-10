@@ -1,9 +1,8 @@
 package commands
 
 import (
-	"bufio"
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	ogLog "log"
@@ -228,12 +227,7 @@ func (c *DockerCommand) CreateClientStatMonitor(ctx context.Context, container *
 
 	defer stream.Body.Close()
 
-	scanner := bufio.NewScanner(stream.Body)
-	for scanner.Scan() {
-		data := scanner.Bytes()
-		var stats ContainerStats
-		_ = json.Unmarshal(data, &stats)
-
+	err = decodeStatsStream(stream.Body, func(stats ContainerStats) {
 		recordedStats := &RecordedStats{
 			ClientStats: stats,
 			DerivedStats: DerivedStats{
@@ -244,6 +238,10 @@ func (c *DockerCommand) CreateClientStatMonitor(ctx context.Context, container *
 		}
 
 		container.appendStats(recordedStats, c.Config.UserConfig.Stats.MaxDuration)
+	})
+	// a cancelled context means we are shutting down or switching contexts
+	if err != nil && !errors.Is(err, context.Canceled) && ctx.Err() == nil {
+		c.Log.Errorf("stats for container %s stopped: %v", container.ID, err)
 	}
 
 	container.SetMonitoringStats(false)
