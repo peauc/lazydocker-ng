@@ -13,7 +13,7 @@ func loadConfigString(t *testing.T, content string) *UserConfig {
 	path := filepath.Join(t.TempDir(), "config.yml")
 	writeFile(t, path, content)
 	base := GetDefaultConfig()
-	cfg, err := loadUserConfig(path, &base)
+	cfg, _, err := loadUserConfig(path, &base)
 	if err != nil {
 		t.Fatalf("loadUserConfig(%q): %v", content, err)
 	}

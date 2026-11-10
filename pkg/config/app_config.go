@@ -15,6 +15,7 @@ package config
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -502,6 +503,9 @@ type AppConfig struct {
 	// UserConfigPath is the config.yml read at startup. It is an upstream
 	// lazydocker file while lazydocker-ng has no config.yml of its own.
 	UserConfigPath string
+	// Warnings lists problems found while loading the config (unknown keys).
+	// They are logged and shown once when the GUI starts.
+	Warnings []string
 }
 
 // NewAppConfig makes a new app config
@@ -511,7 +515,7 @@ func NewAppConfig(name, version, commit, date string, buildSource string, debugg
 		return nil, err
 	}
 
-	userConfig, err := loadUserConfigWithDefaults(location.Source)
+	userConfig, warnings, err := loadUserConfigWithDefaults(location.Source)
 	if err != nil {
 		return nil, err
 	}
@@ -532,50 +536,57 @@ func NewAppConfig(name, version, commit, date string, buildSource string, debugg
 		ConfigDir:      location.Dir,
 		ProjectDir:     projectDir,
 		UserConfigPath: location.Source,
+		Warnings:       warnings,
 	}
 
 	return appConfig, nil
 }
 
-func loadUserConfigWithDefaults(path string) (*UserConfig, error) {
+func loadUserConfigWithDefaults(path string) (*UserConfig, []string, error) {
 	config := GetDefaultConfig()
 
 	return loadUserConfig(path, &config)
 }
 
 // loadUserConfig decodes the config file at path onto base, creating an empty
-// file first if there is none.
-func loadUserConfig(fileName string, base *UserConfig) (*UserConfig, error) {
+// file first if there is none. It also returns a warning for every key that no
+// config field reads.
+func loadUserConfig(fileName string, base *UserConfig) (*UserConfig, []string, error) {
 	if _, err := os.Stat(fileName); err != nil {
 		if os.IsNotExist(err) {
 			file, err := os.Create(fileName)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			file.Close()
 		} else {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	content, err := os.ReadFile(fileName)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := yaml.Unmarshal(content, base); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var doc yaml.MapSlice
 	if err := yaml.Unmarshal(content, &doc); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err := applyLegacyKeys(doc, base); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return base, nil
+	var warnings []string
+	for _, key := range unknownKeys(doc) {
+		warnings = append(warnings, fmt.Sprintf("%s: unknown key %q (ignored)", fileName, key))
+	}
+
+	return base, warnings, nil
 }
 
 // WriteToUserConfig allows you to set a value on the user config to be saved
@@ -583,7 +594,7 @@ func loadUserConfig(fileName string, base *UserConfig) (*UserConfig, error) {
 // empty string this is because we are using the omitempty yaml directive so
 // that we don't write a heap of zero values to the user's config.yml
 func (c *AppConfig) WriteToUserConfig(updateConfig func(*UserConfig) error) error {
-	userConfig, err := loadUserConfig(c.UserConfigPath, &UserConfig{})
+	userConfig, _, err := loadUserConfig(c.UserConfigPath, &UserConfig{})
 	if err != nil {
 		return err
 	}
