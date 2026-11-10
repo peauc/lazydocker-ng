@@ -68,7 +68,7 @@ Release binaries are built for x86_64 and arm64 (Linux, macOS and Windows).
 
 #### Verifying a release
 
-Each release has a `checksums.txt` listing every archive and SBOM. It is signed with [cosign](https://github.com/sigstore/cosign) (keyless, by this repository's release workflow), and every file also has a GitHub build provenance attestation. After downloading `checksums.txt`, `checksums.txt.sigstore.json` and an archive:
+Each release has a `checksums.txt` listing every archive and SBOM. It is signed with [cosign](https://github.com/sigstore/cosign) (keyless, by this repository's release workflow), and every archive and SBOM also has a GitHub build provenance attestation. After downloading `checksums.txt`, `checksums.txt.sigstore.json` and an archive:
 
 ```sh
 cosign verify-blob checksums.txt --bundle checksums.txt.sigstore.json \
