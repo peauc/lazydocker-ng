@@ -14,7 +14,6 @@ import (
 	"github.com/go-errors/errors"
 
 	"github.com/jesseduffield/kill"
-	"github.com/mgutz/str"
 	"github.com/peauc/lazydocker-ng/pkg/config"
 	"github.com/peauc/lazydocker-ng/pkg/utils"
 	"github.com/sirupsen/logrus"
@@ -84,16 +83,37 @@ func (c *OSCommand) RunExecutable(cmd *exec.Cmd) error {
 	return err
 }
 
-// ExecutableFromString takes a string like `docker ps -a` and returns an executable command for it
+// ExecutableFromString takes a string like `docker ps -a` and returns an executable command for it.
+// An empty or badly quoted string gives a command whose Run/Start/Output return the error.
 func (c *OSCommand) ExecutableFromString(commandStr string) *exec.Cmd {
-	splitCmd := str.ToArgv(commandStr)
+	splitCmd, err := splitCommand(commandStr)
+	if err != nil {
+		return &exec.Cmd{Err: err}
+	}
 	return c.NewCmd(splitCmd[0], splitCmd[1:]...)
 }
 
 // Same as ExecutableFromString but cancellable via a context
 func (c *OSCommand) ExecutableFromStringContext(ctx context.Context, commandStr string) *exec.Cmd {
-	splitCmd := str.ToArgv(commandStr)
+	splitCmd, err := splitCommand(commandStr)
+	if err != nil {
+		return &exec.Cmd{Err: err}
+	}
 	return exec.CommandContext(ctx, splitCmd[0], splitCmd[1:]...)
+}
+
+var errEmptyCommand = errors.New("empty command")
+
+// splitCommand splits commandStr into an executable and its arguments.
+func splitCommand(commandStr string) ([]string, error) {
+	splitCmd, err := utils.SplitArgs(commandStr)
+	if err == nil && len(splitCmd) == 0 {
+		err = errEmptyCommand
+	}
+	if err != nil {
+		return nil, fmt.Errorf("invalid command %q: %w", commandStr, err)
+	}
+	return splitCmd, nil
 }
 
 func (c *OSCommand) NewCmd(cmdName string, commandArgs ...string) *exec.Cmd {

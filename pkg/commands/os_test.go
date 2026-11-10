@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"testing"
 
+	"github.com/peauc/lazydocker-ng/pkg/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -352,4 +353,30 @@ func TestOSCommandNewCommandStringWithShellWindows(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestExecutableFromStringEmpty(t *testing.T) {
+	osCommand := NewDummyOSCommand()
+	for _, command := range []string{"", "   "} {
+		cmd := osCommand.ExecutableFromString(command)
+		assert.ErrorContains(t, cmd.Run(), "empty command", "command %q", command)
+	}
+}
+
+func TestExecutableFromStringUnterminatedQuote(t *testing.T) {
+	cmd := NewDummyOSCommand().ExecutableFromString(`echo "hi`)
+
+	assert.ErrorIs(t, cmd.Run(), utils.ErrUnterminatedQuote)
+}
+
+func TestExecutableFromStringContextEmpty(t *testing.T) {
+	cmd := NewDummyOSCommand().ExecutableFromStringContext(t.Context(), "")
+
+	assert.ErrorContains(t, cmd.Run(), "empty command")
+}
+
+func TestRunCommandWithOutputEmpty(t *testing.T) {
+	_, err := NewDummyOSCommand().RunCommandWithOutput("")
+
+	assert.Error(t, err)
 }

@@ -19,7 +19,6 @@ require (
 	github.com/jesseduffield/yaml v0.0.0-20190702115811-b900b7e08b56
 	github.com/mattn/go-runewidth v0.0.15
 	github.com/mcuadros/go-lookup v0.0.0-20171110082742-5650f26be767
-	github.com/mgutz/str v1.2.0
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/samber/lo v1.31.0
 	github.com/sasha-s/go-deadlock v0.3.1
