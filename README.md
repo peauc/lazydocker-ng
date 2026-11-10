@@ -64,6 +64,20 @@ curl https://raw.githubusercontent.com/peauc/lazydocker-ng/master/scripts/instal
 
 The script installs downloaded binary to `$HOME/.local/bin` directory by default, but it can be changed by setting `DIR` environment variable.
 
+Release binaries are built for x86_64 and arm64 (Linux, macOS and Windows).
+
+#### Verifying a release
+
+Each release has a `checksums.txt` listing every archive and SBOM. It is signed with [cosign](https://github.com/sigstore/cosign) (keyless, by this repository's release workflow), and every archive and SBOM also has a GitHub build provenance attestation. After downloading `checksums.txt`, `checksums.txt.sigstore.json` and an archive:
+
+```sh
+cosign verify-blob checksums.txt --bundle checksums.txt.sigstore.json \
+  --certificate-identity-regexp '^https://github.com/peauc/lazydocker-ng/\.github/workflows/cd\.yml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+sha256sum --ignore-missing -c checksums.txt
+gh attestation verify lazydocker-ng_<version>_Linux_x86_64.tar.gz --repo peauc/lazydocker-ng
+```
+
 ### Go
 
 Required Go version >= **1.26**
