@@ -16,10 +16,10 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
-	"github.com/OpenPeeDeeP/xdg"
 	"github.com/jesseduffield/yaml"
 )
 
@@ -537,8 +537,7 @@ func configDirForVendor(vendor string, projectName string) string {
 	if envConfigDir != "" {
 		return envConfigDir
 	}
-	configDirs := xdg.New(vendor, projectName)
-	return configDirs.ConfigHome()
+	return filepath.Join(configHome(runtime.GOOS, os.Getenv), vendor, projectName)
 }
 
 func configDir(projectName string) string {
