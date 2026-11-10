@@ -9,9 +9,10 @@ on:
 permissions:
   contents: read
 
+# cancel superseded runs of a pull request; every push to master runs to the end
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   GOFLAGS: -mod=vendor
