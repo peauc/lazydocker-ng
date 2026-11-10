@@ -72,7 +72,7 @@ func TestOSCommandEditFile(t *testing.T) {
 		{
 			"test",
 			func(name string, arg ...string) *exec.Cmd {
-				return exec.Command("exit", "1")
+				return exec.CommandContext(t.Context(), "exit", "1")
 			},
 			func(env string) string {
 				return ""
@@ -85,12 +85,12 @@ func TestOSCommandEditFile(t *testing.T) {
 			"test",
 			func(name string, arg ...string) *exec.Cmd {
 				if name == "which" {
-					return exec.Command("exit", "1")
+					return exec.CommandContext(t.Context(), "exit", "1")
 				}
 
 				assert.EqualValues(t, "nano", name)
 
-				return exec.Command("exit", "0")
+				return exec.CommandContext(t.Context(), "exit", "0")
 			},
 			func(env string) string {
 				if env == "VISUAL" {
@@ -107,12 +107,12 @@ func TestOSCommandEditFile(t *testing.T) {
 			"test",
 			func(name string, arg ...string) *exec.Cmd {
 				if name == "which" {
-					return exec.Command("exit", "1")
+					return exec.CommandContext(t.Context(), "exit", "1")
 				}
 
 				assert.EqualValues(t, "emacs", name)
 
-				return exec.Command("exit", "0")
+				return exec.CommandContext(t.Context(), "exit", "0")
 			},
 			func(env string) string {
 				if env == "EDITOR" {
@@ -129,12 +129,12 @@ func TestOSCommandEditFile(t *testing.T) {
 			"test",
 			func(name string, arg ...string) *exec.Cmd {
 				if name == "which" {
-					return exec.Command("echo")
+					return exec.CommandContext(t.Context(), "echo")
 				}
 
 				assert.EqualValues(t, "vi", name)
 
-				return exec.Command("exit", "0")
+				return exec.CommandContext(t.Context(), "exit", "0")
 			},
 			func(env string) string {
 				return ""

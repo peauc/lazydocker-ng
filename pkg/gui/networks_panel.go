@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -46,7 +47,7 @@ func (gui *Gui) getNetworksPanel() *panels.SideListPanel[*commands.Network] {
 		},
 		GetTableCells: presentation.GetNetworkDisplayStrings,
 		Hide: func() bool {
-			return gui.State.UIMode != MODE_RESSOURCES
+			return gui.State.UIMode != ModeResources
 		},
 	}
 }
@@ -175,7 +176,7 @@ func (gui *Gui) handleNetworksBulkCommand(g *gocui.Gui, v *gocui.View) error {
 		InternalFunction: gui.handlePruneNetworks,
 	})
 
-	bulkCommands := append(baseBulkCommands, gui.Config.UserConfig.BulkCommands.Networks...)
+	bulkCommands := slices.Concat(baseBulkCommands, gui.Config.UserConfig.BulkCommands.Networks)
 	commandObject := gui.DockerCommand.NewCommandObject(commands.CommandObject{})
 
 	return gui.createBulkCommandMenu(bulkCommands, commandObject)

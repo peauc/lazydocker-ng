@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -13,8 +14,8 @@ import (
 )
 
 func isExitError(err error) bool {
-	_, ok := err.(*exec.ExitError)
-	return ok
+	var exitErr *exec.ExitError
+	return errors.As(err, &exitErr)
 }
 
 func (gui *Gui) runSubprocess(cmd *exec.Cmd) error {

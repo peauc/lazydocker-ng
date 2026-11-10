@@ -18,11 +18,11 @@ import (
 	"github.com/samber/lo"
 )
 
-const DEFAULT_VERSION = "unversioned"
+const defaultVersion = "unversioned"
 
 var (
 	commit      string
-	version     = DEFAULT_VERSION
+	version     = defaultVersion
 	date        string
 	buildSource = "unknown"
 
@@ -102,7 +102,7 @@ func main() {
 }
 
 func updateBuildInfo() {
-	if version == DEFAULT_VERSION {
+	if version == defaultVersion {
 		if buildInfo, ok := debug.ReadBuildInfo(); ok {
 			revision, ok := lo.Find(buildInfo.Settings, func(setting debug.BuildSetting) bool {
 				return setting.Key == "vcs.revision"

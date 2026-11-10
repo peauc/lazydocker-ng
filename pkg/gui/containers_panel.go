@@ -3,6 +3,7 @@ package gui
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -116,7 +117,7 @@ func (gui *Gui) getContainersPanel() *panels.SideListPanel[*commands.Container] 
 			return presentation.GetContainerDisplayStrings(&gui.Config.UserConfig.Gui, container)
 		},
 		Hide: func() bool {
-			return gui.State.UIMode != MODE_CONTAINERS
+			return gui.State.UIMode != ModeContainers
 		},
 	}
 }
@@ -582,7 +583,7 @@ func (gui *Gui) handleContainersBulkCommand(g *gocui.Gui, v *gocui.View) error {
 		},
 	)
 
-	bulkCommands := append(baseBulkCommands, gui.Config.UserConfig.BulkCommands.Containers...)
+	bulkCommands := slices.Concat(baseBulkCommands, gui.Config.UserConfig.BulkCommands.Containers)
 	commandObject := gui.DockerCommand.NewCommandObject(commands.CommandObject{})
 
 	return gui.createBulkCommandMenu(bulkCommands, commandObject)

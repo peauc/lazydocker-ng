@@ -164,8 +164,8 @@ func sanitisedCommandOutput(output []byte, err error) (string, error) {
 	if err != nil {
 		// errors like 'exit status 1' are not very useful so we'll create an error
 		// from stderr if we got an ExitError
-		exitError, ok := err.(*exec.ExitError)
-		if ok {
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) {
 			return outputString, errors.New(string(exitError.Stderr))
 		}
 		return "", WrapError(err)

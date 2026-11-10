@@ -67,7 +67,7 @@ func (gui *Gui) getProjectPanel() *panels.SideListPanel[*commands.Project] {
 			return gui.handleProjectSelect(nil, nil)
 		},
 		Hide: func() bool {
-			return gui.State.UIMode != MODE_CONTAINERS || !gui.State.InDockerComposeMode
+			return gui.State.UIMode != ModeContainers || !gui.State.InDockerComposeMode
 		},
 	}
 }

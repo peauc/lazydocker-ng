@@ -16,7 +16,7 @@ type TaskManager struct {
 	taskIDMutex  deadlock.Mutex
 	Log          *logrus.Entry
 	Tr           *i18n.TranslationSet
-	newTaskId    int
+	newTaskID    int
 }
 
 type Task struct {
@@ -59,14 +59,14 @@ func (t *TaskManager) Close() {
 func (t *TaskManager) NewTask(f func(ctx context.Context)) error {
 	go func() {
 		t.taskIDMutex.Lock()
-		t.newTaskId++
-		taskID := t.newTaskId
+		t.newTaskID++
+		taskID := t.newTaskID
 		t.taskIDMutex.Unlock()
 
 		t.waitingMutex.Lock()
 		defer t.waitingMutex.Unlock()
 		t.taskIDMutex.Lock()
-		if taskID < t.newTaskId {
+		if taskID < t.newTaskID {
 			t.taskIDMutex.Unlock()
 			return
 		}

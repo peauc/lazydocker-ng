@@ -305,7 +305,7 @@ quux:
 			input:       data{1, innerData{2, "foo", true}},
 			format:      "xml",
 			expected:    nil,
-			expectedErr: errors.New("Unsupported detailization format: xml"),
+			expectedErr: errors.New("unsupported detailization format: xml"),
 		},
 	}
 

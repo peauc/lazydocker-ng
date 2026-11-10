@@ -73,14 +73,14 @@ func plotGraph(container *commands.Container, spec config.GraphConfig, width int
 		data[i] = floatValue
 	}
 
-	max := spec.Max
+	maxValue := spec.Max
 	if spec.MaxType == "" {
-		max = lo.Max(data)
+		maxValue = lo.Max(data)
 	}
 
-	min := spec.Min
+	minValue := spec.Min
 	if spec.MinType == "" {
-		min = lo.Min(data)
+		minValue = lo.Min(data)
 	}
 
 	height := 10
@@ -99,8 +99,8 @@ func plotGraph(container *commands.Container, spec config.GraphConfig, width int
 		data,
 		asciigraph.Height(height),
 		asciigraph.Width(width),
-		asciigraph.Min(min),
-		asciigraph.Max(max),
+		asciigraph.Min(minValue),
+		asciigraph.Max(maxValue),
 		asciigraph.Caption(caption),
 	), nil
 }
@@ -132,14 +132,12 @@ func getFloat(unk any) (float64, error) {
 	default:
 		v := reflect.ValueOf(unk)
 		v = reflect.Indirect(v)
-		if v.Type().ConvertibleTo(floatType) {
-			fv := v.Convert(floatType)
-			return fv.Float(), nil
-		} else if v.Type().ConvertibleTo(stringType) {
-			sv := v.Convert(stringType)
-			s := sv.String()
-			return strconv.ParseFloat(s, 64)
-		} else {
+		switch {
+		case v.Type().ConvertibleTo(floatType):
+			return v.Convert(floatType).Float(), nil
+		case v.Type().ConvertibleTo(stringType):
+			return strconv.ParseFloat(v.Convert(stringType).String(), 64)
+		default:
 			return math.NaN(), fmt.Errorf("can't convert %v to float64", v.Type())
 		}
 	}

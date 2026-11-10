@@ -19,7 +19,7 @@ import (
 func (gui *Gui) renderContainerLogsToMain(container *commands.Container) tasks.TaskFunc {
 	return gui.NewTickerTask(TickerTaskOpts{
 		Func: func(ctx context.Context, notifyStopped chan struct{}) {
-			gui.renderContainerLogsToMainAux(container, ctx, notifyStopped)
+			gui.renderContainerLogsToMainAux(ctx, container, notifyStopped)
 		},
 		Duration: time.Millisecond * 200,
 		// TODO: see why this isn't working (when switching from Top tab to Logs tab in the services panel, the tops tab's content isn't removed)
@@ -29,7 +29,7 @@ func (gui *Gui) renderContainerLogsToMain(container *commands.Container) tasks.T
 	})
 }
 
-func (gui *Gui) renderContainerLogsToMainAux(container *commands.Container, ctx context.Context, notifyStopped chan struct{}) {
+func (gui *Gui) renderContainerLogsToMainAux(ctx context.Context, container *commands.Container, notifyStopped chan struct{}) {
 	gui.clearMainView()
 	defer func() {
 		notifyStopped <- struct{}{}
@@ -37,7 +37,7 @@ func (gui *Gui) renderContainerLogsToMainAux(container *commands.Container, ctx 
 
 	mainView := gui.Views.Main
 
-	if err := gui.writeContainerLogs(container, ctx, mainView); err != nil {
+	if err := gui.writeContainerLogs(ctx, container, mainView); err != nil {
 		gui.Log.Error(err)
 	}
 
@@ -85,7 +85,7 @@ func (gui *Gui) renderLogsToStdout(container *commands.Container) {
 		}
 	}()
 
-	if err := gui.writeContainerLogs(container, ctx, os.Stdout); err != nil {
+	if err := gui.writeContainerLogs(ctx, container, os.Stdout); err != nil {
 		gui.Log.Error(err)
 		return
 	}
@@ -104,7 +104,7 @@ func (gui *Gui) promptToReturn() {
 	}
 }
 
-func (gui *Gui) writeContainerLogs(ctr *commands.Container, ctx context.Context, writer io.Writer) error {
+func (gui *Gui) writeContainerLogs(ctx context.Context, ctr *commands.Container, writer io.Writer) error {
 	readCloser, err := gui.DockerCommand.Client.ContainerLogs(ctx, ctr.ID, container.LogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,

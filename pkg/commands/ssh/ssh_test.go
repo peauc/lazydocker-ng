@@ -39,11 +39,11 @@ func TestHelperProcess(t *testing.T) {
 		// as exit0, but a child keeps the inherited stderr open; its PID goes
 		// to HELPER_PIDFILE so the test can stop it (a running test binary
 		// cannot be deleted on Windows)
-		child := exec.Command(os.Args[0], "-test.run=TestHelperProcess", "--", "sleep-short")
+		child := exec.CommandContext(context.Background(), os.Args[0], "-test.run=TestHelperProcess", "--", "sleep-short") //nolint:gosec // re-executes this test binary
 		child.Env = os.Environ()
 		child.Stderr = os.Stderr
 		if child.Start() == nil {
-			_ = os.WriteFile(os.Getenv("HELPER_PIDFILE"), []byte(strconv.Itoa(child.Process.Pid)), 0o600)
+			_ = os.WriteFile(os.Getenv("HELPER_PIDFILE"), []byte(strconv.Itoa(child.Process.Pid)), 0o600) //nolint:gosec // path set by the test itself
 		}
 		os.Exit(0)
 	}
@@ -112,7 +112,7 @@ func dialAfter(failures int) func(context.Context, string, string) (io.Closer, e
 	}
 }
 
-func newTestHandler(t *testing.T, ssh *fakeSSH, dial func(context.Context, string, string) (io.Closer, error), timeout time.Duration) (*SSHHandler, *tempDirs) {
+func newTestHandler(t *testing.T, ssh *fakeSSH, dial func(context.Context, string, string) (io.Closer, error), timeout time.Duration) (*Handler, *tempDirs) {
 	t.Helper()
 	dirs := &tempDirs{}
 	t.Cleanup(func() {
@@ -123,7 +123,7 @@ func newTestHandler(t *testing.T, ssh *fakeSSH, dial func(context.Context, strin
 			_ = ssh.cmd.Process.Kill()
 		}
 	})
-	return &SSHHandler{
+	return &Handler{
 		oSCommand:     processKiller{},
 		dialContext:   dial,
 		startCmd:      ssh.start,
