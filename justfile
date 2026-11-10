@@ -2,7 +2,7 @@ lint:
     golangci-lint run
 
 test:
-    go test -race ./pkg/...
+    go test -race -coverprofile=coverage.txt ./...
 
 start-projects:
     docker compose -f test/project-a.yml up -d

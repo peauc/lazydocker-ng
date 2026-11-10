@@ -15,7 +15,7 @@ welcome your pull requests:
 2. If you've added code that should be tested, add tests.
 3. If you've added code that need documentation, update the documentation.
 4. Make sure your code follows the [effective go](https://golang.org/doc/effective_go.html) guidelines as much as possible.
-5. Be sure to test your modifications.
+5. Be sure to test your modifications: `just test` and `just lint` run the same checks as CI.
 6. Write a [good commit message](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
 7. Issue that pull request!
 
