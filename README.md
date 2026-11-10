@@ -184,7 +184,7 @@ In the future I want to make this the default, but for now there are some CPU is
 
 ### How do you select text?
 
-Because we support mouse events, you will need to hold option while dragging the mouse to indicate you're trying to select text rather than click on something. Alternatively you can disable mouse events via the `gui.ignoreMouseEvents` config value.
+Because we support mouse events, you will need to hold option while dragging the mouse to indicate you're trying to select text rather than click on something. Alternatively you can disable mouse events via the `gui.ignoreMouseEvents` config value (configs written for lazydocker may use `gui.mouseEvents`, which still works).
 
 Mac Users: See [upstream lazydocker issue #190](https://github.com/jesseduffield/lazydocker/issues/190) for other options.
 
