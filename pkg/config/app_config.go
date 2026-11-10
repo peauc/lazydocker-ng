@@ -361,11 +361,6 @@ type LogsConfig struct {
 // the boolean zero value and this will be ignored when parsing the user's
 // config
 func GetDefaultConfig() UserConfig {
-	duration, err := time.ParseDuration("3m")
-	if err != nil {
-		panic(err)
-	}
-
 	return UserConfig{
 		Gui: GuiConfig{
 			ScrollHeight:      2,
@@ -469,7 +464,7 @@ func GetDefaultConfig() UserConfig {
 		},
 		OS: GetPlatformDefaultConfig(),
 		Stats: StatsConfig{
-			MaxDuration: duration,
+			MaxDuration: 3 * time.Minute,
 			Graphs: []GraphConfig{
 				{
 					Caption:  "CPU (%)",
@@ -566,16 +561,16 @@ func loadUserConfig(fileName string, base *UserConfig) (*UserConfig, []string, e
 
 	content, err := os.ReadFile(fileName)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("could not read %s: %w", fileName, err)
 	}
 
 	if err := yaml.Unmarshal(content, base); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("could not parse %s: %w", fileName, err)
 	}
 
 	var doc yaml.MapSlice
 	if err := yaml.Unmarshal(content, &doc); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("could not parse %s: %w", fileName, err)
 	}
 	if err := applyLegacyKeys(doc, base); err != nil {
 		return nil, nil, err

@@ -2,9 +2,12 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/jesseduffield/yaml"
+	"github.com/stretchr/testify/assert"
 )
 
 // isolateConfigDir points CONFIG_DIR at a fresh temp dir so tests never read
@@ -108,4 +111,18 @@ func TestWritingToConfigFile(t *testing.T) {
 
 	// modifying an existing file that already has 'ConfirmOnQuit'
 	testFn(t, conf, false)
+}
+
+func TestNewAppConfigInvalidYAMLNamesFile(t *testing.T) {
+	dir := isolateConfigDir(t)
+	path := filepath.Join(dir, "config.yml")
+	writeFile(t, path, "gui: [\n")
+
+	_, err := NewAppConfig("lazydocker-ng", "version", "commit", "date", "buildSource", false, nil, "projectDir")
+
+	assert.ErrorContains(t, err, "could not parse "+path)
+}
+
+func TestGetDefaultConfigMaxDuration(t *testing.T) {
+	assert.Equal(t, 3*time.Minute, GetDefaultConfig().Stats.MaxDuration)
 }
