@@ -70,3 +70,12 @@ func TestGetProjectsSkipsInvalidLabels(t *testing.T) {
 	}
 	assert.Equal(t, []string{"good"}, names)
 }
+
+func TestNewCommandObjectMergesOntoDefaults(t *testing.T) {
+	ctr := &Container{Name: "web-1"}
+
+	obj := newComposeTestCommand().NewCommandObject(CommandObject{Container: ctr})
+
+	assert.Equal(t, "docker compose", obj.DockerCompose)
+	assert.Same(t, ctr, obj.Container)
+}
