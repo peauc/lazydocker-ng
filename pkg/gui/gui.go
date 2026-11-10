@@ -11,7 +11,6 @@ import (
 
 	"github.com/go-errors/errors"
 
-	throttle "github.com/boz/go-throttle"
 	"github.com/jesseduffield/gocui"
 	lcUtils "github.com/jesseduffield/lazycore/pkg/utils"
 	"github.com/peauc/lazydocker-ng/pkg/commands"
@@ -20,6 +19,7 @@ import (
 	"github.com/peauc/lazydocker-ng/pkg/gui/types"
 	"github.com/peauc/lazydocker-ng/pkg/i18n"
 	"github.com/peauc/lazydocker-ng/pkg/tasks"
+	"github.com/peauc/lazydocker-ng/pkg/utils"
 	"github.com/sasha-s/go-deadlock"
 	"github.com/sirupsen/logrus"
 )
@@ -297,7 +297,7 @@ func (gui *Gui) Run() error {
 		return err
 	}
 
-	throttledRefresh := throttle.ThrottleFunc(time.Millisecond*50, true, gui.refresh)
+	throttledRefresh := utils.NewThrottle(50*time.Millisecond, gui.refresh)
 	defer throttledRefresh.Stop()
 
 	go func() {
