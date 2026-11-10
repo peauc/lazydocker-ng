@@ -26,17 +26,10 @@ builds:
       - windows
       - darwin
       - linux
+    # 64-bit only since v0.29.0
     goarch:
       - amd64
-      - arm
       - arm64
-      - 386
-    goarm:
-      - 6
-      - 7
-    ignore:
-      - goos: windows
-        goarch: arm
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.buildSource=binaryRelease
 
@@ -51,10 +44,8 @@ archives:
       {{- else if eq .Os "linux" }}Linux
       {{- else if eq .Os "windows" }}Windows
       {{- else }}{{ .Os }}{{ end }}_
-      {{- if eq .Arch "386" }}x86
-      {{- else if eq .Arch "amd64" }}x86_64
+      {{- if eq .Arch "amd64" }}x86_64
       {{- else }}{{ .Arch }}{{ end }}
-      {{- if .Arm }}v{{ .Arm }}{{ end }}
     formats:
       - tar.gz
     files:
@@ -62,6 +53,22 @@ archives:
 
 checksum:
   name_template: "checksums.txt"
+
+# Keyless cosign signature of checksums.txt (which lists every archive and
+# SBOM), using the workflow's GitHub OIDC identity.
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - "sign-blob"
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
+
+# One SPDX SBOM per archive, made with syft.
+sboms:
+  - artifacts: archive
 
 snapshot:
   version_template: "{{ .Tag }}-next"
