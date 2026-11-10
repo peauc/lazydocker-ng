@@ -58,3 +58,18 @@ func TestDecodeStatsStreamPassesCancel(t *testing.T) {
 
 	assert.ErrorIs(t, err, context.Canceled)
 }
+
+// A field with an unexpected type (e.g. from a Docker-compatible daemon) only
+// spoils that sample, as with the old json.Unmarshal: the stream goes on.
+func TestDecodeStatsStreamSurvivesTypeMismatch(t *testing.T) {
+	stream := `{"pids_stats":{"current":"oops"},"num_procs":3}` + "\n" + `{"pids_stats":{"current":7}}` + "\n"
+
+	var got []ContainerStats
+	err := decodeStatsStream(strings.NewReader(stream), func(s ContainerStats) { got = append(got, s) })
+
+	assert.NoError(t, err)
+	if assert.Len(t, got, 2) {
+		assert.Equal(t, 3, got[0].NumProcs, "the rest of the mismatched sample is kept")
+		assert.Equal(t, 7, got[1].PidsStats.Current)
+	}
+}
