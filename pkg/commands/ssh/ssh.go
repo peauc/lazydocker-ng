@@ -214,7 +214,9 @@ func redactedHost(host string) string {
 // Attempt to dial the socket until it becomes available.
 // Uses exponential backoff starting at 100ms, doubling up to 5s.
 // The retry loop continues until ctx is done (the error then includes the
-// last dial error so users can see why) or until ssh exits.
+// last dial error so users can see why) or until ssh fails. ssh exiting 0
+// means it went to the background (e.g. ForkAfterAuthentication in the user's
+// ssh config), so dialing goes on.
 func (h *SSHHandler) retrySocketDial(ctx context.Context, socketPath string, proc *process) error {
 	const (
 		initialBackoff = 100 * time.Millisecond
@@ -222,6 +224,7 @@ func (h *SSHHandler) retrySocketDial(ctx context.Context, socketPath string, pro
 	)
 	backoff := initialBackoff
 	var lastErr error
+	exited := proc.done
 
 	for {
 		timer := time.NewTimer(backoff)
@@ -232,12 +235,13 @@ func (h *SSHHandler) retrySocketDial(ctx context.Context, socketPath string, pro
 				return fmt.Errorf("%w (last dial error: %w)", ctx.Err(), lastErr)
 			}
 			return ctx.Err()
-		case <-proc.done:
+		case <-exited:
 			timer.Stop()
 			if proc.waitErr != nil {
 				return fmt.Errorf("%w: %w", errSSHExited, proc.waitErr)
 			}
-			return errSSHExited
+			exited = nil
+			continue
 		case <-timer.C:
 		}
 
@@ -261,18 +265,23 @@ func (h *SSHHandler) tryDial(ctx context.Context, socketPath string) error {
 
 // tunnelSSH starts ssh forwarding localSocket to the remote docker socket.
 // BatchMode makes a password or host-key prompt fail instead of hanging,
-// ExitOnForwardFailure makes ssh exit when the forward can't be set up, and
-// "--" keeps the host from being read as an option. -N must come before "--":
-// anything after the destination would be the remote command.
+// ExitOnForwardFailure makes ssh exit when the forward can't be set up,
+// ControlPath=none keeps the tunnel out of the user's connection sharing (a
+// ControlPersist master would move it to the background, out of our reach),
+// and "--" keeps the host from being read as an option. -N must come before
+// "--": anything after the destination would be the remote command.
 func (h *SSHHandler) tunnelSSH(ctx context.Context, host, localSocket string, stderr io.Writer) (*exec.Cmd, error) {
 	cmd := exec.CommandContext(ctx, "ssh",
 		"-N",
 		"-o", "BatchMode=yes",
 		"-o", "ExitOnForwardFailure=yes",
+		"-o", "ControlPath=none",
 		"-L", localSocket+":/var/run/docker.sock",
 		"--", host,
 	)
 	cmd.Stderr = stderr
+	// a backgrounded child may keep stderr open; don't let Wait hang on it
+	cmd.WaitDelay = time.Second
 	h.oSCommand.PrepareForChildren(cmd)
 	err := h.startCmd(cmd)
 	if err != nil {

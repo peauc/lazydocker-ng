@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -24,9 +25,22 @@ func TestHelperProcess(t *testing.T) {
 	switch os.Args[len(os.Args)-1] {
 	case "sleep":
 		time.Sleep(60 * time.Second)
+	case "sleep-short":
+		time.Sleep(5 * time.Second)
 	case "fail":
 		fmt.Fprintln(os.Stderr, "Permission denied (publickey).")
 		os.Exit(255)
+	case "exit0":
+		// like ssh with ForkAfterAuthentication/ControlPersist: the started
+		// process exits 0 while the forward lives on elsewhere
+		os.Exit(0)
+	case "fork0":
+		// as exit0, but a child keeps the inherited stderr open
+		child := exec.Command(os.Args[0], "-test.run=TestHelperProcess", "--", "sleep-short")
+		child.Env = os.Environ()
+		child.Stderr = os.Stderr
+		_ = child.Start()
+		os.Exit(0)
 	}
 	os.Exit(0)
 }
@@ -127,7 +141,8 @@ func TestTunnelReadyThenClose(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, result.Created)
 	if assert.Len(t, dirs.created, 1) {
-		assert.Equal(t, "unix://"+dirs.created[0]+"/docker.sock", result.SocketPath)
+		socket := url.URL{Scheme: "unix", Path: filepath.Join(dirs.created[0], "docker.sock")}
+		assert.Equal(t, socket.String(), result.SocketPath)
 	}
 
 	assert.NoError(t, result.Closer.Close())
@@ -190,6 +205,7 @@ func TestTunnelSSHArgs(t *testing.T) {
 			"ssh", "-N",
 			"-o", "BatchMode=yes",
 			"-o", "ExitOnForwardFailure=yes",
+			"-o", "ControlPath=none",
 			"-L", filepath.Join(dirs.created[0], "docker.sock") + ":/var/run/docker.sock",
 			"--", "ssh://myhost@192.168.5.178",
 		}, ssh.args)
@@ -234,4 +250,34 @@ func TestTailBufferKeepsLastBytes(t *testing.T) {
 	_, _ = b.Write([]byte("56789"))
 
 	assert.Equal(t, "23456789", b.String())
+}
+
+// ssh exiting 0 before the socket is up means it went to the background
+// (ForkAfterAuthentication, or a ControlPersist master); the tunnel must keep
+// waiting for the socket instead of failing.
+func TestTunnelSSHExitsZeroKeepsDialing(t *testing.T) {
+	ssh := &fakeSSH{mode: "exit0"}
+	handler, dirs := newTestHandler(t, ssh, dialAfter(3), 5*time.Second)
+
+	result, err := handler.HandleSSHDockerHost("ssh://myhost@192.168.5.178")
+
+	assert.NoError(t, err)
+	assert.True(t, result.Created)
+	assert.NoError(t, result.Closer.Close())
+	if assert.Len(t, dirs.created, 1) {
+		assertGone(t, dirs.created[0])
+	}
+}
+
+// A backgrounded child may keep ssh's stderr open; Close must not wait for it.
+func TestTunnelCloseDoesNotWaitForChildrenHoldingStderr(t *testing.T) {
+	ssh := &fakeSSH{mode: "fork0"}
+	handler, _ := newTestHandler(t, ssh, dialAfter(1), 5*time.Second)
+
+	result, err := handler.HandleSSHDockerHost("ssh://myhost@192.168.5.178")
+	assert.NoError(t, err)
+
+	started := time.Now()
+	assert.NoError(t, result.Closer.Close())
+	assert.Less(t, time.Since(started), 3*time.Second)
 }
