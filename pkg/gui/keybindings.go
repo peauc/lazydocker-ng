@@ -12,7 +12,7 @@ import (
 type Binding struct {
 	ViewName    string
 	Handler     func(*gocui.Gui, *gocui.View) error
-	Key         interface{} // FIXME: find out how to get `gocui.Key | rune`
+	Key         any // FIXME: find out how to get `gocui.Key | rune`
 	Modifier    gocui.Modifier
 	Description string
 }

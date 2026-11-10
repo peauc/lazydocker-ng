@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -277,15 +278,7 @@ func (gui *Gui) handleClickAux(v *gocui.View, itemCount int, selectedLine *int, 
 	_, cy := v.Cursor()
 	_, oy := v.Origin()
 
-	newSelectedLine := cy + oy
-
-	if newSelectedLine < 0 {
-		newSelectedLine = 0
-	}
-
-	if newSelectedLine > itemCount-1 {
-		newSelectedLine = itemCount - 1
-	}
+	newSelectedLine := min(max(cy+oy, 0), itemCount-1)
 
 	*selectedLine = newSelectedLine
 
@@ -406,12 +399,7 @@ func (gui *Gui) getLastFocusedPanelForCurrentMode() string {
 
 func (gui *Gui) isPanelVisible(viewName string) bool {
 	sideViewNames := gui.sideViewNames()
-	for _, name := range sideViewNames {
-		if name == viewName {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(sideViewNames, viewName)
 }
 
 func (gui *Gui) getModeForPanel(viewName string) UIMode {

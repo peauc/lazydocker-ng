@@ -83,8 +83,8 @@ func (c *DockerCommand) NewCommandObjectWithComposeFile(project *Project) Comman
 	// If the project has compose files specified in labels, add them with -f flags
 	// The config_files label can contain multiple files separated by commas
 	args := []string{}
-	files := strings.Split(project.ComposeFile, ",")
-	for _, file := range files {
+	files := strings.SplitSeq(project.ComposeFile, ",")
+	for file := range files {
 		file = strings.TrimSpace(file)
 		if file != "" {
 			// Extract just the filename from the absolute path
@@ -432,17 +432,14 @@ func (c *DockerCommand) RefreshContainerDetails(containers []*Container) error {
 func (c *DockerCommand) SetContainerDetails(containers []*Container) {
 	wg := sync.WaitGroup{}
 	for _, ctr := range containers {
-		ctr := ctr
-		wg.Add(1)
-		go func() {
+		wg.Go(func() {
 			details, err := c.Client.ContainerInspect(context.Background(), ctr.ID)
 			if err != nil {
 				c.Log.Error(err)
 			} else {
 				ctr.SetDetails(details)
 			}
-			wg.Done()
-		}()
+		})
 	}
 	wg.Wait()
 }
@@ -667,8 +664,8 @@ func (c *DockerCommand) GetProjects(containers []*Container, currentProjectDir s
 // newContextStore creates a Docker CLI context store for reading context metadata.
 func newContextStore() ctxstore.Store {
 	storeConfig := ctxstore.NewConfig(
-		func() interface{} { return &ddocker.EndpointMeta{} },
-		ctxstore.EndpointTypeGetter(ddocker.DockerEndpoint, func() interface{} { return &ddocker.EndpointMeta{} }),
+		func() any { return &ddocker.EndpointMeta{} },
+		ctxstore.EndpointTypeGetter(ddocker.DockerEndpoint, func() any { return &ddocker.EndpointMeta{} }),
 	)
 	return ctxstore.New(cliconfig.ContextStoreDir(), storeConfig)
 }

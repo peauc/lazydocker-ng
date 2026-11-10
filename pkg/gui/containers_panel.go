@@ -188,38 +188,38 @@ func (gui *Gui) containerConfigStr(container *commands.Container) string {
 	}
 
 	padding := 10
-	output := ""
-	output += utils.WithPadding("ID: ", padding) + container.ID + "\n"
-	output += utils.WithPadding("Name: ", padding) + container.Name + "\n"
-	output += utils.WithPadding("Image: ", padding) + details.Config.Image + "\n"
-	output += utils.WithPadding("Command: ", padding) + strings.Join(append([]string{details.Path}, details.Args...), " ") + "\n"
-	output += utils.WithPadding("Labels: ", padding) + utils.FormatMap(padding, details.Config.Labels)
-	output += "\n"
+	var output strings.Builder
+	output.WriteString(utils.WithPadding("ID: ", padding) + container.ID + "\n")
+	output.WriteString(utils.WithPadding("Name: ", padding) + container.Name + "\n")
+	output.WriteString(utils.WithPadding("Image: ", padding) + details.Config.Image + "\n")
+	output.WriteString(utils.WithPadding("Command: ", padding) + strings.Join(append([]string{details.Path}, details.Args...), " ") + "\n")
+	output.WriteString(utils.WithPadding("Labels: ", padding) + utils.FormatMap(padding, details.Config.Labels))
+	output.WriteString("\n")
 
-	output += utils.WithPadding("Mounts: ", padding)
+	output.WriteString(utils.WithPadding("Mounts: ", padding))
 	if len(details.Mounts) > 0 {
-		output += "\n"
+		output.WriteString("\n")
 		for _, mount := range details.Mounts {
 			if mount.Type == "volume" {
-				output += fmt.Sprintf("%s%s %s\n", strings.Repeat(" ", padding), utils.ColoredString(string(mount.Type)+":", color.FgYellow), mount.Name)
+				fmt.Fprintf(&output, "%s%s %s\n", strings.Repeat(" ", padding), utils.ColoredString(string(mount.Type)+":", color.FgYellow), mount.Name)
 			} else {
-				output += fmt.Sprintf("%s%s %s:%s\n", strings.Repeat(" ", padding), utils.ColoredString(string(mount.Type)+":", color.FgYellow), mount.Source, mount.Destination)
+				fmt.Fprintf(&output, "%s%s %s:%s\n", strings.Repeat(" ", padding), utils.ColoredString(string(mount.Type)+":", color.FgYellow), mount.Source, mount.Destination)
 			}
 		}
 	} else {
-		output += "none\n"
+		output.WriteString("none\n")
 	}
 
-	output += utils.WithPadding("Ports: ", padding)
+	output.WriteString(utils.WithPadding("Ports: ", padding))
 	if len(details.NetworkSettings.Ports) > 0 {
-		output += "\n"
+		output.WriteString("\n")
 		for k, v := range details.NetworkSettings.Ports {
 			for _, host := range v {
-				output += fmt.Sprintf("%s%s %s\n", strings.Repeat(" ", padding), utils.ColoredString(host.HostPort+":", color.FgYellow), k)
+				fmt.Fprintf(&output, "%s%s %s\n", strings.Repeat(" ", padding), utils.ColoredString(host.HostPort+":", color.FgYellow), k)
 			}
 		}
 	} else {
-		output += "none\n"
+		output.WriteString("none\n")
 	}
 
 	data, err := utils.MarshalIntoYaml(&details)
@@ -227,9 +227,9 @@ func (gui *Gui) containerConfigStr(container *commands.Container) string {
 		return fmt.Sprintf("Error marshalling container details: %v", err)
 	}
 
-	output += fmt.Sprintf("\nFull details:\n\n%s", utils.ColoredYamlString(string(data)))
+	fmt.Fprintf(&output, "\nFull details:\n\n%s", utils.ColoredYamlString(string(data)))
 
-	return output
+	return output.String()
 }
 
 func (gui *Gui) renderContainerStats(container *commands.Container) tasks.TaskFunc {

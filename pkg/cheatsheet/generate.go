@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/peauc/lazydocker-ng/pkg/app"
 	"github.com/peauc/lazydocker-ng/pkg/config"
@@ -126,16 +127,17 @@ func addBinding(title string, bindingSections []*bindingSection, binding *gui.Bi
 }
 
 func formatSections(mApp *app.App, bindingSections []*bindingSection) string {
-	content := fmt.Sprintf("# Lazydocker %s\n", mApp.Tr.Menu)
+	var content strings.Builder
+	fmt.Fprintf(&content, "# Lazydocker %s\n", mApp.Tr.Menu)
 
 	for _, section := range bindingSections {
-		content += formatTitle(section.title)
-		content += "<pre>\n"
+		content.WriteString(formatTitle(section.title))
+		content.WriteString("<pre>\n")
 		for _, binding := range section.bindings {
-			content += formatBinding(binding)
+			content.WriteString(formatBinding(binding))
 		}
-		content += "</pre>\n"
+		content.WriteString("</pre>\n")
 	}
 
-	return content
+	return content.String()
 }
