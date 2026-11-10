@@ -8,16 +8,10 @@ github.com/Microsoft/go-winio/internal/fs
 github.com/Microsoft/go-winio/internal/socket
 github.com/Microsoft/go-winio/internal/stringbuffer
 github.com/Microsoft/go-winio/pkg/guid
-# github.com/boz/go-throttle v0.0.0-20160922054636-fdc4eab740c1
-## explicit
-github.com/boz/go-throttle
 # github.com/clipperhouse/uax29/v2 v2.2.0
 ## explicit; go 1.18
 github.com/clipperhouse/uax29/v2/graphemes
 github.com/clipperhouse/uax29/v2/internal/iterators
-# github.com/cloudfoundry/jibber_jabber v0.0.0-20151120183258-bcc4c8345a21
-## explicit
-github.com/cloudfoundry/jibber_jabber
 # github.com/containerd/errdefs v1.0.0
 ## explicit; go 1.20
 github.com/containerd/errdefs
@@ -147,9 +141,6 @@ github.com/goccy/go-yaml/parser
 github.com/goccy/go-yaml/printer
 github.com/goccy/go-yaml/scanner
 github.com/goccy/go-yaml/token
-# github.com/gookit/color v1.5.0
-## explicit; go 1.13
-github.com/gookit/color
 # github.com/integrii/flaggy v1.8.0
 ## explicit; go 1.25
 github.com/integrii/flaggy
@@ -220,10 +211,6 @@ github.com/moby/sys/atomicwriter
 github.com/moby/sys/sequential
 # github.com/morikuni/aec v1.0.0
 ## explicit
-# github.com/onsi/ginkgo v1.8.0
-## explicit
-# github.com/onsi/gomega v1.5.0
-## explicit
 # github.com/opencontainers/go-digest v1.0.0
 ## explicit; go 1.13
 github.com/opencontainers/go-digest
@@ -237,9 +224,6 @@ github.com/petermattis/goid
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/pmezard/go-difflib v1.0.0
-## explicit
-github.com/pmezard/go-difflib/difflib
 # github.com/rivo/uniseg v0.4.7
 ## explicit; go 1.18
 github.com/rivo/uniseg
@@ -265,9 +249,6 @@ github.com/stretchr/testify/assert
 github.com/stretchr/testify/assert/yaml
 github.com/stretchr/testify/internal/difflib
 github.com/stretchr/testify/internal/spew
-# github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778
-## explicit; go 1.15
-github.com/xo/terminfo
 # go.opentelemetry.io/auto/sdk v1.1.0
 ## explicit; go 1.22.0
 go.opentelemetry.io/auto/sdk

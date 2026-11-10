@@ -5,7 +5,6 @@ import (
 
 	"dario.cat/mergo"
 
-	"github.com/cloudfoundry/jibber_jabber"
 	"github.com/go-errors/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -18,7 +17,7 @@ type Localizer struct {
 
 func NewTranslationSetFromConfig(log *logrus.Entry, configLanguage string) (*TranslationSet, error) {
 	if configLanguage == "auto" {
-		language := detectLanguage(jibber_jabber.DetectLanguage)
+		language := detectLanguage(detectSystemLanguage)
 		return NewTranslationSet(log, language), nil
 	}
 
