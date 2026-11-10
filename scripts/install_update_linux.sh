@@ -11,11 +11,8 @@ MACHINE=$(uname -m)
 case $MACHINE in
     x86_64|amd64) ARCH=x86_64 ;;
     aarch64*|arm64) ARCH=arm64 ;;
-    i386|i686) ARCH=x86 ;;
-    armv6*) ARCH=armv6 ;;
-    armv7*) ARCH=armv7 ;;
     *)
-        echo "lazydocker-ng: unsupported architecture '$MACHINE'" >&2
+        echo "lazydocker-ng: unsupported architecture '$MACHINE': release binaries are built for x86_64 and arm64 (since v0.29.0)" >&2
         exit 1
         ;;
 esac
