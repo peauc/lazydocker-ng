@@ -183,9 +183,6 @@ github.com/mattn/go-runewidth
 # github.com/mcuadros/go-lookup v0.0.0-20171110082742-5650f26be767
 ## explicit
 github.com/mcuadros/go-lookup
-# github.com/mgutz/str v1.2.0
-## explicit
-github.com/mgutz/str
 # github.com/moby/docker-image-spec v1.3.1
 ## explicit; go 1.18
 github.com/moby/docker-image-spec/specs-go/v1

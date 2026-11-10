@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jesseduffield/yaml"
+	"github.com/peauc/lazydocker-ng/pkg/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -125,4 +126,15 @@ func TestNewAppConfigInvalidYAMLNamesFile(t *testing.T) {
 
 func TestGetDefaultConfigMaxDuration(t *testing.T) {
 	assert.Equal(t, 3*time.Minute, GetDefaultConfig().Stats.MaxDuration)
+}
+
+func TestDockerComposeCommandQuotedFiles(t *testing.T) {
+	isolateConfigDir(t)
+
+	conf, err := NewAppConfig("name", "version", "commit", "date", "buildSource", false, []string{"my file.yml"}, "projectDir")
+
+	assert.NoError(t, err)
+	args, err := utils.SplitArgs(conf.UserConfig.CommandTemplates.DockerCompose)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"docker", "compose", "-f", "my file.yml"}, args)
 }

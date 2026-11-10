@@ -83,6 +83,7 @@ func (c *DockerCommand) NewCommandObjectWithComposeFile(project *Project) Comman
 
 	// If the project has compose files specified in labels, add them with -f flags
 	// The config_files label can contain multiple files separated by commas
+	args := []string{}
 	files := strings.Split(project.ComposeFile, ",")
 	for _, file := range files {
 		file = strings.TrimSpace(file)
@@ -92,8 +93,12 @@ func (c *DockerCommand) NewCommandObjectWithComposeFile(project *Project) Comman
 			if idx := strings.LastIndex(file, "/"); idx >= 0 {
 				file = file[idx+1:]
 			}
-			dockerComposeCmd += " -f " + file
+			args = append(args, "-f", file)
 		}
+	}
+	if len(args) > 0 {
+		// quoted, so a path with spaces stays one argument
+		dockerComposeCmd += " " + utils.JoinArgs(args)
 	}
 
 	return CommandObject{DockerCompose: dockerComposeCmd}
@@ -105,9 +110,10 @@ func (c *DockerCommand) NewCommandObjectWithComposeFile(project *Project) Comman
 func (c *DockerCommand) NewCommandObjectWithProjectName(project *Project) CommandObject {
 	dockerComposeCmd := c.Config.UserConfig.CommandTemplates.DockerCompose
 
-	// Use -p flag with project name - this works without compose file
+	// Use -p flag with project name - this works without compose file.
+	// Quoted, so a name can never turn into extra arguments.
 	if project != nil && project.Name != "" {
-		dockerComposeCmd += " -p " + project.Name
+		dockerComposeCmd += " " + utils.JoinArgs([]string{"-p", project.Name})
 	}
 
 	return CommandObject{DockerCompose: dockerComposeCmd}
@@ -329,8 +335,7 @@ func (c *DockerCommand) GetContainers(existingContainers []*Container) ([]*Conta
 				newContainer.Name = ctr.ID
 			}
 		}
-		newContainer.ServiceName = ctr.Labels["com.docker.compose.service"]
-		newContainer.ProjectName = ctr.Labels["com.docker.compose.project"]
+		newContainer.ProjectName, newContainer.ServiceName = composeLabels(ctr.Labels)
 		newContainer.ContainerNumber = ctr.Labels["com.docker.compose.container"]
 		newContainer.OneOff = ctr.Labels["com.docker.compose.oneoff"] == "True"
 
@@ -565,8 +570,8 @@ func (c *DockerCommand) GetProjects(containers []*Container, currentProjectDir s
 
 	// Build project info from containers
 	for _, container := range containers {
-		projectName, exists := container.Container.Labels["com.docker.compose.project"]
-		if !exists || projectName == "" {
+		projectName, serviceName := composeLabels(container.Container.Labels)
+		if projectName == "" {
 			continue
 		}
 
@@ -599,7 +604,7 @@ func (c *DockerCommand) GetProjects(containers []*Container, currentProjectDir s
 			}
 		}
 
-		if serviceName, ok := container.Container.Labels["com.docker.compose.service"]; ok && serviceName != "" {
+		if serviceName != "" {
 			servicesPerProject[projectName][serviceName] = true
 		}
 	}

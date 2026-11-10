@@ -19,10 +19,10 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/jesseduffield/yaml"
+	"github.com/peauc/lazydocker-ng/pkg/utils"
 )
 
 // UserConfig holds all of the user-configurable options
@@ -515,9 +515,14 @@ func NewAppConfig(name, version, commit, date string, buildSource string, debugg
 		return nil, err
 	}
 
-	// Pass compose files as individual -f flags to docker compose
+	// Pass compose files as individual -f flags to docker compose, quoted so
+	// paths with spaces stay one argument
 	if len(composeFiles) > 0 {
-		userConfig.CommandTemplates.DockerCompose += " -f " + strings.Join(composeFiles, " -f ")
+		args := make([]string, 0, 2*len(composeFiles))
+		for _, file := range composeFiles {
+			args = append(args, "-f", file)
+		}
+		userConfig.CommandTemplates.DockerCompose += " " + utils.JoinArgs(args)
 	}
 
 	appConfig := &AppConfig{
