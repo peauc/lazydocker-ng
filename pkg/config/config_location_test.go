@@ -1,7 +1,6 @@
 package config
 
 import (
-	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -27,7 +26,7 @@ func writeFile(t *testing.T, path, content string) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -124,27 +123,29 @@ type fileState struct {
 	content string
 }
 
+// snapshotDir records every entry of dir (the upstream folders in these tests
+// are flat; a new subfolder shows up as an entry with no content).
 func snapshotDir(t *testing.T, dir string) map[string]fileState {
 	t.Helper()
-	files := map[string]fileState{}
-	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() {
-			return err
-		}
-		info, err := d.Info()
-		if err != nil {
-			return err
-		}
-		content, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		rel, _ := filepath.Rel(dir, path)
-		files[rel] = fileState{info.Size(), info.ModTime(), string(content)}
-		return nil
-	})
+	entries, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatal(err)
+	}
+	files := map[string]fileState{}
+	for _, entry := range entries {
+		info, err := entry.Info()
+		if err != nil {
+			t.Fatal(err)
+		}
+		state := fileState{size: info.Size(), modTime: info.ModTime()}
+		if !entry.IsDir() {
+			content, err := os.ReadFile(filepath.Join(dir, entry.Name()))
+			if err != nil {
+				t.Fatal(err)
+			}
+			state.content = string(content)
+		}
+		files[entry.Name()] = state
 	}
 	return files
 }

@@ -115,9 +115,9 @@ type guiState struct {
 	CurrentDockerComposeProject string // Runtime: which project is selected?
 }
 
-//type projectState struct {
+// type projectState struct {
 //	name string
-//}
+// }
 
 type filterState struct {
 	// If true then we're either currently inside the filter view
@@ -136,28 +136,28 @@ type filterState struct {
 type WindowMaximisation int
 
 const (
-	SCREEN_NORMAL WindowMaximisation = iota
-	SCREEN_HALF
-	SCREEN_FULL
+	ScreenNormal WindowMaximisation = iota
+	ScreenHalf
+	ScreenFull
 )
 
 type UIMode int
 
 const (
-	MODE_CONTAINERS UIMode = iota // Projects, Services, Containers
-	MODE_RESSOURCES               // Images, Volumes, Networks
+	ModeContainers UIMode = iota // Projects, Services, Containers
+	ModeResources                // Images, Volumes, Networks
 )
 
 func getScreenMode(config *config.AppConfig) WindowMaximisation {
 	switch config.UserConfig.Gui.ScreenMode {
 	case "normal":
-		return SCREEN_NORMAL
+		return ScreenNormal
 	case "half":
-		return SCREEN_HALF
+		return ScreenHalf
 	case "fullscreen":
-		return SCREEN_FULL
+		return ScreenFull
 	default:
-		return SCREEN_NORMAL
+		return ScreenNormal
 	}
 }
 
@@ -176,10 +176,10 @@ func NewGui(log *logrus.Entry, dockerCommand *commands.DockerCommand, oSCommand 
 		ScreenMode:           getScreenMode(config),
 
 		// Initialize UI mode system
-		UIMode: MODE_CONTAINERS,
+		UIMode: ModeContainers,
 		LastFocusedPanel: map[UIMode]string{
-			MODE_CONTAINERS: "",
-			MODE_RESSOURCES: "",
+			ModeContainers: "",
+			ModeResources:  "",
 		},
 	}
 
@@ -368,7 +368,7 @@ func (gui *Gui) Run() error {
 	}()
 
 	err = g.MainLoop()
-	if err == gocui.ErrQuit {
+	if errors.Is(err, gocui.ErrQuit) {
 		return nil
 	}
 	return err

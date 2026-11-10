@@ -21,7 +21,7 @@ type CmdKiller interface {
 	PrepareForChildren(cmd *exec.Cmd)
 }
 
-type SSHHandler struct {
+type Handler struct {
 	oSCommand CmdKiller
 
 	dialContext func(ctx context.Context, network, addr string) (io.Closer, error)
@@ -33,8 +33,8 @@ type SSHHandler struct {
 	socketTimeout time.Duration
 }
 
-func NewSSHHandler(oSCommand CmdKiller) *SSHHandler {
-	return &SSHHandler{
+func NewHandler(oSCommand CmdKiller) *Handler {
+	return &Handler{
 		oSCommand: oSCommand,
 
 		dialContext: func(ctx context.Context, network, addr string) (io.Closer, error) {
@@ -54,7 +54,7 @@ type TunnelResult struct {
 
 // HandleSSHDockerHost overrides the DOCKER_HOST environment variable
 // to point towards a local unix socket tunneled over SSH to the specified ssh host.
-func (h *SSHHandler) HandleSSHDockerHost(dockerHost string) (TunnelResult, error) {
+func (h *Handler) HandleSSHDockerHost(dockerHost string) (TunnelResult, error) {
 	u, err := url.Parse(dockerHost)
 	if err != nil {
 		// if no or an invalid docker host is specified, continue nominally
@@ -170,7 +170,7 @@ func stopTunnel(killer CmdKiller, proc *process, socketDir string) error {
 	return errors.Join(errs...)
 }
 
-func (h *SSHHandler) createDockerHostTunnel(ctx context.Context, remoteHost string) (*tunneledDockerHost, error) {
+func (h *Handler) createDockerHostTunnel(ctx context.Context, remoteHost string) (*tunneledDockerHost, error) {
 	socketDir, err := h.tempDir("", "ld-ssh-")
 	if err != nil {
 		return nil, fmt.Errorf("create ssh tunnel tmp dir: %w", err)
@@ -227,7 +227,7 @@ func redactedHost(host string) string {
 // last dial error so users can see why) or until ssh fails. ssh exiting 0
 // means it went to the background (e.g. ForkAfterAuthentication in the user's
 // ssh config), so dialing goes on.
-func (h *SSHHandler) retrySocketDial(ctx context.Context, socketPath string, proc *process) error {
+func (h *Handler) retrySocketDial(ctx context.Context, socketPath string, proc *process) error {
 	const (
 		initialBackoff = 100 * time.Millisecond
 		maxBackoff     = 5 * time.Second
@@ -264,7 +264,7 @@ func (h *SSHHandler) retrySocketDial(ctx context.Context, socketPath string, pro
 }
 
 // Try to dial the specified unix socket, immediately close the connection if successfully created.
-func (h *SSHHandler) tryDial(ctx context.Context, socketPath string) error {
+func (h *Handler) tryDial(ctx context.Context, socketPath string) error {
 	conn, err := h.dialContext(ctx, "unix", socketPath)
 	if err != nil {
 		return err
@@ -280,7 +280,7 @@ func (h *SSHHandler) tryDial(ctx context.Context, socketPath string) error {
 // ControlPersist master would move it to the background, out of our reach),
 // and "--" keeps the host from being read as an option. -N must come before
 // "--": anything after the destination would be the remote command.
-func (h *SSHHandler) tunnelSSH(ctx context.Context, host, localSocket string, stderr io.Writer) (*exec.Cmd, error) {
+func (h *Handler) tunnelSSH(ctx context.Context, host, localSocket string, stderr io.Writer) (*exec.Cmd, error) {
 	cmd := exec.CommandContext(ctx, "ssh",
 		"-N",
 		"-o", "BatchMode=yes",

@@ -3,14 +3,23 @@ run:
   go: "1.26"
 linters:
   enable:
+    - bodyclose
+    - copyloopvar
+    - errorlint
     - exhaustive
+    - gocritic
+    - gosec
     - makezero
+    - misspell
     - nakedret
+    - noctx
     - prealloc
+    - revive
     - thelper
     - tparallel
     - unconvert
     - unparam
+    - usestdlibvars
     - wastedassign
   settings:
     exhaustive:
@@ -28,6 +37,24 @@ linters:
       - third_party$
       - builtin$
       - examples$
+    rules:
+      # gocui key handlers and test fakes must keep their signatures
+      - linters: [revive]
+        text: "unused-parameter"
+      # pkg/gui is replaced by the Bubble Tea GUI in step 3
+      - linters: [revive]
+        path: pkg/gui/
+        text: "receiver-naming"
+      # translations: these words are correct in their own language
+      - linters: [misspell]
+        path: pkg/i18n/(chinese|dutch|french|german|polish|portuguese|spanish|turkish)\.go
+      # translation strings, not credentials
+      - linters: [gosec]
+        path: pkg/i18n/
+        text: G101
+      # running user-configured commands is what lazydocker does
+      - linters: [gosec]
+        text: G204
 formatters:
   enable:
     - gofumpt

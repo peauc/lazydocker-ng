@@ -21,11 +21,11 @@ type Binding struct {
 func (b *Binding) GetKey() string {
 	key := 0
 
-	switch b.Key.(type) {
+	switch k := b.Key.(type) {
 	case rune:
-		key = int(b.Key.(rune))
+		key = int(k)
 	case gocui.Key:
-		key = int(b.Key.(gocui.Key))
+		key = int(k)
 	}
 
 	// special keys
@@ -634,8 +634,8 @@ func (gui *Gui) GetInitialKeybindings() []*Binding {
 			{ViewName: panel.GetView().Name(), Key: gocui.KeyArrowRight, Modifier: gocui.ModNone, Handler: gui.nextView},
 			{ViewName: panel.GetView().Name(), Key: 'h', Modifier: gocui.ModNone, Handler: gui.previousView},
 			{ViewName: panel.GetView().Name(), Key: 'l', Modifier: gocui.ModNone, Handler: gui.nextView},
-			//{ViewName: panel.GetView().Name(), Key: gocui.KeyTab, Modifier: gocui.ModNone, Handler: gui.nextView},
-			//{ViewName: panel.GetView().Name(), Key: gocui.KeyBacktab, Modifier: gocui.ModNone, Handler: gui.previousView},
+			// {ViewName: panel.GetView().Name(), Key: gocui.KeyTab, Modifier: gocui.ModNone, Handler: gui.nextView},
+			// {ViewName: panel.GetView().Name(), Key: gocui.KeyBacktab, Modifier: gocui.ModNone, Handler: gui.previousView},
 		}...)
 	}
 

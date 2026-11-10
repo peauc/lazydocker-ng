@@ -128,7 +128,7 @@ type clientResult struct {
 // client for the given host, and pings the daemon to negotiate the API version.
 // On failure any partially-created resources are cleaned up before returning.
 func createDockerClient(osCommand *OSCommand, apiVersion string, dockerHost string) (*clientResult, error) {
-	tunnelResult, err := ssh.NewSSHHandler(osCommand).HandleSSHDockerHost(dockerHost)
+	tunnelResult, err := ssh.NewHandler(osCommand).HandleSSHDockerHost(dockerHost)
 	if err != nil {
 		return nil, fmt.Errorf("could not set up SSH tunnel: %w", err)
 	}
@@ -177,7 +177,7 @@ func NewDockerCommand(log *logrus.Entry, osCommand *OSCommand, tr *i18n.Translat
 		ogLog.Printf("> could not determine host %v", err)
 	}
 
-	result, err := createDockerClient(osCommand, config.UserConfig.DockerApiVersion, dockerHost)
+	result, err := createDockerClient(osCommand, config.UserConfig.DockerAPIVersion, dockerHost)
 	if err != nil {
 		return nil, err
 	}
@@ -784,7 +784,7 @@ func (c *DockerCommand) SwitchContext(contextName string) error {
 		return err
 	}
 
-	result, err := createDockerClient(c.OSCommand, c.Config.UserConfig.DockerApiVersion, dockerHost)
+	result, err := createDockerClient(c.OSCommand, c.Config.UserConfig.DockerAPIVersion, dockerHost)
 	if err != nil {
 		return fmt.Errorf("context %q: %w", contextName, err)
 	}

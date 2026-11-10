@@ -66,7 +66,7 @@ func TestWriteToUserConfigLeavesNoTempFiles(t *testing.T) {
 func TestWriteToUserConfigUpdateErrorKeepsFile(t *testing.T) {
 	ac := newIsolatedAppConfig(t)
 	original := []byte("confirmOnQuit: true\n")
-	if err := os.WriteFile(ac.ConfigFilename(), original, 0o644); err != nil {
+	if err := os.WriteFile(ac.ConfigFilename(), original, 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -84,7 +84,7 @@ func TestWriteFileAtomicKeepsMode(t *testing.T) {
 		t.Skip("unix file modes")
 	}
 	path := filepath.Join(t.TempDir(), "config.yml")
-	if err := os.WriteFile(path, []byte("old\n"), 0o640); err != nil {
+	if err := os.WriteFile(path, []byte("old\n"), 0o640); err != nil { //nolint:gosec // needs a mode other than CreateTemp's 0600
 		t.Fatal(err)
 	}
 	if err := os.Chmod(path, 0o640); err != nil {
@@ -107,7 +107,7 @@ func TestWriteFileAtomicFollowsSymlink(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(target, []byte("old\n"), 0o644); err != nil {
+	if err := os.WriteFile(target, []byte("old\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	link := filepath.Join(dir, "config.yml")

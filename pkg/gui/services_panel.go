@@ -78,7 +78,7 @@ func (gui *Gui) getServicesPanel() *panels.SideListPanel[*commands.Service] {
 		},
 		Hide: func() bool {
 			// Show only in container mode AND docker compose projects
-			return gui.State.UIMode != MODE_CONTAINERS || !gui.State.InDockerComposeMode
+			return gui.State.UIMode != ModeContainers || !gui.State.InDockerComposeMode
 		},
 	}
 }

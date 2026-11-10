@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -63,7 +64,7 @@ func (gui *Gui) getImagesPanel() *panels.SideListPanel[*commands.Image] {
 		},
 		GetTableCells: presentation.GetImageDisplayStrings,
 		Hide: func() bool {
-			return gui.State.UIMode != MODE_RESSOURCES
+			return gui.State.UIMode != ModeResources
 		},
 	}
 }
@@ -216,7 +217,7 @@ func (gui *Gui) handleImagesBulkCommand(g *gocui.Gui, v *gocui.View) error {
 		InternalFunction: gui.handlePruneImages,
 	})
 
-	bulkCommands := append(baseBulkCommands, gui.Config.UserConfig.BulkCommands.Images...)
+	bulkCommands := slices.Concat(baseBulkCommands, gui.Config.UserConfig.BulkCommands.Images)
 	commandObject := gui.DockerCommand.NewCommandObject(commands.CommandObject{})
 
 	return gui.createBulkCommandMenu(bulkCommands, commandObject)

@@ -323,9 +323,8 @@ func CloseMany(closers []io.Closer) error {
 func SafeTruncate(str string, limit int) string {
 	if len(str) > limit {
 		return str[0:limit]
-	} else {
-		return str
 	}
+	return str
 }
 
 func IsValidHexValue(v string) bool {
@@ -377,6 +376,6 @@ func marshalIntoFormat(data any, format string) ([]byte, error) {
 		}
 		return yaml.Marshal(dataMirror)
 	default:
-		return nil, errors.New(fmt.Sprintf("Unsupported detailization format: %s", format))
+		return nil, fmt.Errorf("unsupported detailization format: %s", format)
 	}
 }

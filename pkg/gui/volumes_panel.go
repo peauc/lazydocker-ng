@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/fatih/color"
@@ -52,7 +53,7 @@ func (gui *Gui) getVolumesPanel() *panels.SideListPanel[*commands.Volume] {
 		},
 		GetTableCells: presentation.GetVolumeDisplayStrings,
 		Hide: func() bool {
-			return gui.State.UIMode != MODE_RESSOURCES
+			return gui.State.UIMode != ModeResources
 		},
 	}
 }
@@ -187,7 +188,7 @@ func (gui *Gui) handleVolumesBulkCommand(g *gocui.Gui, v *gocui.View) error {
 		InternalFunction: gui.handlePruneVolumes,
 	})
 
-	bulkCommands := append(baseBulkCommands, gui.Config.UserConfig.BulkCommands.Volumes...)
+	bulkCommands := slices.Concat(baseBulkCommands, gui.Config.UserConfig.BulkCommands.Volumes)
 	commandObject := gui.DockerCommand.NewCommandObject(commands.CommandObject{})
 
 	return gui.createBulkCommandMenu(bulkCommands, commandObject)

@@ -293,24 +293,24 @@ func (gui *Gui) handleClickAux(v *gocui.View, itemCount int, selectedLine *int, 
 
 func (gui *Gui) nextScreenMode() error {
 	if gui.currentViewName() == "main" {
-		gui.State.ScreenMode = prevIntInCycle([]WindowMaximisation{SCREEN_NORMAL, SCREEN_HALF, SCREEN_FULL}, gui.State.ScreenMode)
+		gui.State.ScreenMode = prevIntInCycle([]WindowMaximisation{ScreenNormal, ScreenHalf, ScreenFull}, gui.State.ScreenMode)
 
 		return nil
 	}
 
-	gui.State.ScreenMode = nextIntInCycle([]WindowMaximisation{SCREEN_NORMAL, SCREEN_HALF, SCREEN_FULL}, gui.State.ScreenMode)
+	gui.State.ScreenMode = nextIntInCycle([]WindowMaximisation{ScreenNormal, ScreenHalf, ScreenFull}, gui.State.ScreenMode)
 
 	return nil
 }
 
 func (gui *Gui) prevScreenMode() error {
 	if gui.currentViewName() == "main" {
-		gui.State.ScreenMode = nextIntInCycle([]WindowMaximisation{SCREEN_NORMAL, SCREEN_HALF, SCREEN_FULL}, gui.State.ScreenMode)
+		gui.State.ScreenMode = nextIntInCycle([]WindowMaximisation{ScreenNormal, ScreenHalf, ScreenFull}, gui.State.ScreenMode)
 
 		return nil
 	}
 
-	gui.State.ScreenMode = prevIntInCycle([]WindowMaximisation{SCREEN_NORMAL, SCREEN_HALF, SCREEN_FULL}, gui.State.ScreenMode)
+	gui.State.ScreenMode = prevIntInCycle([]WindowMaximisation{ScreenNormal, ScreenHalf, ScreenFull}, gui.State.ScreenMode)
 
 	return nil
 }
@@ -331,7 +331,7 @@ func prevIntInCycle(sl []WindowMaximisation, current WindowMaximisation) WindowM
 	for i, val := range sl {
 		if val == current {
 			if i > 0 {
-				return sl[i-1]
+				return sl[i-1] //nolint:gosec // i > 0, so i-1 is in range
 			}
 			return sl[len(sl)-1]
 		}
@@ -405,9 +405,9 @@ func (gui *Gui) isPanelVisible(viewName string) bool {
 func (gui *Gui) getModeForPanel(viewName string) UIMode {
 	switch viewName {
 	case "project", "services", "containers":
-		return MODE_CONTAINERS
+		return ModeContainers
 	case "images", "volumes", "networks":
-		return MODE_RESSOURCES
+		return ModeResources
 	default:
 		return gui.State.UIMode
 	}
@@ -452,10 +452,10 @@ func (gui *Gui) switchToMode(targetMode UIMode) error {
 func (gui *Gui) toggleMode() error {
 	gui.Log.Info("Toggling mode")
 	var targetMode UIMode
-	if gui.State.UIMode == MODE_CONTAINERS {
-		targetMode = MODE_RESSOURCES
+	if gui.State.UIMode == ModeContainers {
+		targetMode = ModeResources
 	} else {
-		targetMode = MODE_CONTAINERS
+		targetMode = ModeContainers
 	}
 	return gui.switchToMode(targetMode)
 }

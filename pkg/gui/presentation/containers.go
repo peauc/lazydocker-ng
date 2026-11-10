@@ -166,11 +166,12 @@ func getDisplayCPUPerc(c *commands.Container) string {
 	formattedPercentage := fmt.Sprintf("%.2f%%", stats.DerivedStats.CPUPercentage)
 
 	var clr color.Attribute
-	if percentage > 90 {
+	switch {
+	case percentage > 90:
 		clr = color.FgRed
-	} else if percentage > 50 {
+	case percentage > 50:
 		clr = color.FgYellow
-	} else {
+	default:
 		clr = color.FgWhite
 	}
 

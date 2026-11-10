@@ -11,7 +11,7 @@ import (
 // In this file we use the boxlayout package, along with knowledge about the app's state,
 // to arrange the windows (i.e. panels) on the screen.
 
-const INFO_SECTION_PADDING = " "
+const InfoSectionPadding = " "
 
 func (gui *Gui) getWindowDimensions(informationStr string, appStatus string) map[string]boxlayout.Dimensions {
 	minimumHeight := 12
@@ -94,16 +94,16 @@ func (gui *Gui) getMidSectionWeights() (int, int) {
 	mainSectionWeight := int(1/sidePanelWidthRatio) - 1
 	sideSectionWeight := 1
 
-	if currentWindow == "main" && gui.State.ScreenMode == SCREEN_FULL {
+	if currentWindow == "main" && gui.State.ScreenMode == ScreenFull {
 		mainSectionWeight = 1
 		sideSectionWeight = 0
 	} else {
 		switch gui.State.ScreenMode {
-		case SCREEN_HALF:
+		case ScreenHalf:
 			mainSectionWeight = 1
-		case SCREEN_FULL:
+		case ScreenFull:
 			mainSectionWeight = 0
-		case SCREEN_NORMAL:
+		case ScreenNormal:
 			// mainSectionWeight remains 0
 		}
 	}
@@ -118,7 +118,7 @@ func (gui *Gui) infoSectionChildren(informationStr string, appStatus string) []*
 		result = append(result,
 			&boxlayout.Box{
 				Window: "appStatus",
-				Size:   runewidth.StringWidth(appStatus) + runewidth.StringWidth(INFO_SECTION_PADDING),
+				Size:   runewidth.StringWidth(appStatus) + runewidth.StringWidth(InfoSectionPadding),
 			},
 		)
 	}
@@ -145,7 +145,7 @@ func (gui *Gui) infoSectionChildren(informationStr string, appStatus string) []*
 			{
 				Window: "information",
 				// unlike appStatus, informationStr has various colors so we need to decolorise before taking the length
-				Size: runewidth.StringWidth(INFO_SECTION_PADDING) + runewidth.StringWidth(utils.Decolorise(informationStr)),
+				Size: runewidth.StringWidth(InfoSectionPadding) + runewidth.StringWidth(utils.Decolorise(informationStr)),
 			},
 		}...,
 	)
@@ -167,18 +167,18 @@ func (gui *Gui) sidePanelChildren(width int, height int) []*boxlayout.Box {
 	currentWindow := gui.currentSideWindowName()
 	sideWindowNames := gui.sideViewNames()
 
-	if gui.State.ScreenMode == SCREEN_FULL || gui.State.ScreenMode == SCREEN_HALF {
+	switch {
+	case gui.State.ScreenMode == ScreenFull || gui.State.ScreenMode == ScreenHalf:
 		fullHeightBox := func(window string) *boxlayout.Box {
 			if window == currentWindow {
 				return &boxlayout.Box{
 					Window: window,
 					Weight: 1,
 				}
-			} else {
-				return &boxlayout.Box{
-					Window: window,
-					Size:   0,
-				}
+			}
+			return &boxlayout.Box{
+				Window: window,
+				Size:   0,
 			}
 		}
 
@@ -186,7 +186,7 @@ func (gui *Gui) sidePanelChildren(width int, height int) []*boxlayout.Box {
 			return fullHeightBox(window)
 		})
 
-	} else if height >= 28 {
+	case height >= 28:
 		accordionMode := gui.Config.UserConfig.Gui.ExpandFocusedSidePanel
 		accordionBox := func(defaultBox *boxlayout.Box) *boxlayout.Box {
 			if accordionMode && defaultBox.Window == currentWindow {
@@ -202,7 +202,8 @@ func (gui *Gui) sidePanelChildren(width int, height int) []*boxlayout.Box {
 		return lo.Map(sideWindowNames, func(window string, _ int) *boxlayout.Box {
 			return accordionBox(&boxlayout.Box{Window: window, Weight: 1})
 		})
-	} else {
+
+	default:
 		squashedHeight := 1
 		if height >= 21 {
 			squashedHeight = 3
@@ -214,11 +215,10 @@ func (gui *Gui) sidePanelChildren(width int, height int) []*boxlayout.Box {
 					Window: window,
 					Weight: 1,
 				}
-			} else {
-				return &boxlayout.Box{
-					Window: window,
-					Size:   squashedHeight,
-				}
+			}
+			return &boxlayout.Box{
+				Window: window,
+				Size:   squashedHeight,
 			}
 		}
 
