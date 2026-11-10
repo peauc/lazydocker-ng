@@ -66,7 +66,7 @@ The script installs downloaded binary to `$HOME/.local/bin` directory by default
 
 ### Go
 
-Required Go version >= **1.25**
+Required Go version >= **1.26**
 
 ```sh
 go install github.com/peauc/lazydocker-ng@latest

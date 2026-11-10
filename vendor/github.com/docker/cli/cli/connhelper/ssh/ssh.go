@@ -1,3 +1,6 @@
+// FIXME(thaJeztah): remove once we are a module; the go:build directive prevents go from downgrading language version to go1.16:
+//go:build go1.26
+
 // Package ssh provides the connection helper for ssh:// URL.
 package ssh
 
@@ -15,8 +18,7 @@ import (
 func ParseURL(daemonURL string) (*Spec, error) {
 	u, err := url.Parse(daemonURL)
 	if err != nil {
-		var urlErr *url.Error
-		if errors.As(err, &urlErr) {
+		if urlErr, ok := errors.AsType[*url.Error](err); ok {
 			err = urlErr.Unwrap()
 		}
 		return nil, fmt.Errorf("invalid SSH URL: %w", err)
@@ -175,7 +177,7 @@ func quoteCommand(commandAndArgs ...string) (string, error) {
 			quotedCmd = a
 			continue
 		}
-		quotedCmd += " " + a //nolint:perfsprint // ignore "concat-loop"; no need to use a string-builder for this.
+		quotedCmd += " " + a
 	}
 	// each part is quoted appropriately, so now we'll have a full
 	// shell command to pass off to "ssh"
