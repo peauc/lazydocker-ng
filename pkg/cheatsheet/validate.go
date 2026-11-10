@@ -1,51 +1,30 @@
 package cheatsheet
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
-	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 
 	"github.com/jesseduffield/lazycore/pkg/utils"
-	"github.com/pmezard/go-difflib/difflib"
 )
 
-func Check() {
-	dir := GetKeybindingsDir()
-	tmpDir := filepath.Join(os.TempDir(), "lazydocker_cheatsheet")
+var cheatsheetFile = regexp.MustCompile(`^Keybindings_\w+\.md$`)
 
-	err := os.RemoveAll(tmpDir)
+func Check() {
+	changed, err := checkCheatsheets()
 	if err != nil {
 		log.Fatalf("Error occurred while checking if cheatsheets are up to date: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
 
-	if err = os.Mkdir(tmpDir, 0o700); err != nil {
-		log.Fatalf("Error occurred while checking if cheatsheets are up to date: %v", err)
-	}
-
-	generateAtDir(tmpDir)
-
-	actualContent := obtainContent(dir)
-	expectedContent := obtainContent(tmpDir)
-
-	if expectedContent == "" {
-		log.Fatal("empty expected content")
-	}
-
-	if actualContent != expectedContent {
-		if err := difflib.WriteUnifiedDiff(os.Stdout, difflib.UnifiedDiff{
-			A:        difflib.SplitLines(expectedContent),
-			B:        difflib.SplitLines(actualContent),
-			FromFile: "Expected",
-			FromDate: "",
-			ToFile:   "Actual",
-			ToDate:   "",
-			Context:  1,
-		}); err != nil {
-			log.Fatalf("Error occurred while checking if cheatsheets are up to date: %v", err)
+	if len(changed) > 0 {
+		fmt.Println("These cheatsheets are out of date:")
+		for _, name := range changed {
+			fmt.Println("  " + name)
 		}
 		fmt.Printf(
 			"\nCheatsheets are out of date. Please run `%s` at the project root and commit the changes. "+
@@ -59,29 +38,70 @@ func Check() {
 	fmt.Println("\nCheatsheets are up to date")
 }
 
+// checkCheatsheets generates the cheatsheets into a temp dir and returns the
+// ones that differ from docs/keybindings.
+func checkCheatsheets() ([]string, error) {
+	tmpDir, err := os.MkdirTemp("", "lazydocker_cheatsheet")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	generateAtDir(tmpDir)
+
+	return changedCheatsheets(tmpDir, GetKeybindingsDir())
+}
+
 func GetKeybindingsDir() string {
 	return utils.GetLazyRootDirectory() + "/docs/keybindings"
 }
 
-func obtainContent(dir string) string {
-	re := regexp.MustCompile(`Keybindings_\w+\.md$`)
-
-	content := ""
-	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-		if re.MatchString(path) {
-			bytes, err := os.ReadFile(path)
-			if err != nil {
-				log.Fatalf("Error occurred while checking if cheatsheets are up to date: %v", err)
-			}
-			content += fmt.Sprintf("\n%s\n\n", filepath.Base(path))
-			content += string(bytes)
-		}
-
-		return nil
-	})
+// changedCheatsheets returns, sorted, the Keybindings_*.md files that differ
+// between expectedDir and actualDir or exist in only one of them.
+func changedCheatsheets(expectedDir, actualDir string) ([]string, error) {
+	expected, err := readCheatsheets(expectedDir)
 	if err != nil {
-		log.Fatalf("Error occurred while checking if cheatsheets are up to date: %v", err)
+		return nil, err
+	}
+	if len(expected) == 0 {
+		return nil, errors.New("no cheatsheets were generated")
+	}
+	actual, err := readCheatsheets(actualDir)
+	if err != nil {
+		return nil, err
 	}
 
-	return content
+	changed := []string{}
+	for name, content := range expected {
+		if other, ok := actual[name]; !ok || !bytes.Equal(content, other) {
+			changed = append(changed, name)
+		}
+	}
+	for name := range actual {
+		if _, ok := expected[name]; !ok {
+			changed = append(changed, name)
+		}
+	}
+	slices.Sort(changed)
+	return changed, nil
+}
+
+func readCheatsheets(dir string) (map[string][]byte, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	files := map[string][]byte{}
+	for _, entry := range entries {
+		if entry.IsDir() || !cheatsheetFile.MatchString(entry.Name()) {
+			continue
+		}
+		content, err := os.ReadFile(filepath.Join(dir, entry.Name()))
+		if err != nil {
+			return nil, err
+		}
+		files[entry.Name()] = content
+	}
+	return files, nil
 }
