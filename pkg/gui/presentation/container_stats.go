@@ -106,9 +106,9 @@ func plotGraph(container *commands.Container, spec config.GraphConfig, width int
 }
 
 // from Dave C's answer at https://stackoverflow.com/questions/20767724/converting-unknown-interface-to-float64-in-golang
-func getFloat(unk interface{}) (float64, error) {
-	floatType := reflect.TypeOf(float64(0))
-	stringType := reflect.TypeOf("")
+func getFloat(unk any) (float64, error) {
+	floatType := reflect.TypeFor[float64]()
+	stringType := reflect.TypeFor[string]()
 
 	switch i := unk.(type) {
 	case float64:

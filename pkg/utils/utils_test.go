@@ -270,7 +270,7 @@ func TestMarshalIntoFormat(t *testing.T) {
 	}
 
 	type scenario struct {
-		input       interface{}
+		input       any
 		format      string
 		expected    []byte
 		expectedErr error

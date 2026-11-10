@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/jesseduffield/gocui"
@@ -62,30 +63,30 @@ func (gui *Gui) renderVolumeConfig(volume *commands.Volume) tasks.TaskFunc {
 
 func (gui *Gui) volumeConfigStr(volume *commands.Volume) string {
 	padding := 15
-	output := ""
-	output += utils.WithPadding("Name: ", padding) + volume.Name + "\n"
-	output += utils.WithPadding("Driver: ", padding) + volume.Volume.Driver + "\n"
-	output += utils.WithPadding("Scope: ", padding) + volume.Volume.Scope + "\n"
-	output += utils.WithPadding("Mountpoint: ", padding) + volume.Volume.Mountpoint + "\n"
-	output += utils.WithPadding("Labels: ", padding) + utils.FormatMap(padding, volume.Volume.Labels) + "\n"
-	output += utils.WithPadding("Options: ", padding) + utils.FormatMap(padding, volume.Volume.Options) + "\n"
+	var output strings.Builder
+	output.WriteString(utils.WithPadding("Name: ", padding) + volume.Name + "\n")
+	output.WriteString(utils.WithPadding("Driver: ", padding) + volume.Volume.Driver + "\n")
+	output.WriteString(utils.WithPadding("Scope: ", padding) + volume.Volume.Scope + "\n")
+	output.WriteString(utils.WithPadding("Mountpoint: ", padding) + volume.Volume.Mountpoint + "\n")
+	output.WriteString(utils.WithPadding("Labels: ", padding) + utils.FormatMap(padding, volume.Volume.Labels) + "\n")
+	output.WriteString(utils.WithPadding("Options: ", padding) + utils.FormatMap(padding, volume.Volume.Options) + "\n")
 
-	output += utils.WithPadding("Status: ", padding)
+	output.WriteString(utils.WithPadding("Status: ", padding))
 	if volume.Volume.Status != nil {
-		output += "\n"
+		output.WriteString("\n")
 		for k, v := range volume.Volume.Status {
-			output += utils.FormatMapItem(padding, k, v)
+			output.WriteString(utils.FormatMapItem(padding, k, v))
 		}
 	} else {
-		output += "n/a"
+		output.WriteString("n/a")
 	}
 
 	if volume.Volume.UsageData != nil {
-		output += utils.WithPadding("RefCount: ", padding) + fmt.Sprintf("%d", volume.Volume.UsageData.RefCount) + "\n"
-		output += utils.WithPadding("Size: ", padding) + utils.FormatBinaryBytes(int(volume.Volume.UsageData.Size)) + "\n"
+		output.WriteString(utils.WithPadding("RefCount: ", padding) + fmt.Sprintf("%d", volume.Volume.UsageData.RefCount) + "\n")
+		output.WriteString(utils.WithPadding("Size: ", padding) + utils.FormatBinaryBytes(int(volume.Volume.UsageData.Size)) + "\n")
 	}
 
-	return output
+	return output.String()
 }
 
 func (gui *Gui) reloadVolumes() error {

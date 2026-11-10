@@ -1,6 +1,8 @@
 package gui
 
 import (
+	"slices"
+
 	"github.com/jesseduffield/gocui"
 	"github.com/samber/lo"
 )
@@ -122,9 +124,9 @@ func (gui *Gui) currentStaticViewName() string {
 	gui.ViewStackMutex.Lock()
 	defer gui.ViewStackMutex.Unlock()
 
-	for i := len(gui.State.ViewStack) - 1; i >= 0; i-- {
-		if !lo.Contains(gui.popupViewNames(), gui.State.ViewStack[i]) {
-			return gui.State.ViewStack[i]
+	for _, v := range slices.Backward(gui.State.ViewStack) {
+		if !lo.Contains(gui.popupViewNames(), v) {
+			return v
 		}
 	}
 

@@ -12,7 +12,7 @@ func TestContainerFieldsConcurrency(t *testing.T) {
 	c := &Container{ID: "test"}
 	summary := dcontainer.Summary{State: "running"}
 	var wg sync.WaitGroup
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		wg.Add(4)
 		go func() { defer wg.Done(); c.SetSummary(summary) }()
 		go func() { defer wg.Done(); _ = c.GetSummary() }()
@@ -26,7 +26,7 @@ func TestGetLastStatsConcurrency(t *testing.T) {
 	c := &Container{}
 	c.StatHistory = []*RecordedStats{{RecordedAt: time.Now()}}
 	var wg sync.WaitGroup
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		wg.Add(2)
 		go func() {
 			defer wg.Done()

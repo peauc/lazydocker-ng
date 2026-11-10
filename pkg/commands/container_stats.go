@@ -39,12 +39,12 @@ type ContainerStats struct {
 			Op    string `json:"op"`
 			Value int    `json:"value"`
 		} `json:"io_serviced_recursive"`
-		IoQueueRecursive       []interface{} `json:"io_queue_recursive"`
-		IoServiceTimeRecursive []interface{} `json:"io_service_time_recursive"`
-		IoWaitTimeRecursive    []interface{} `json:"io_wait_time_recursive"`
-		IoMergedRecursive      []interface{} `json:"io_merged_recursive"`
-		IoTimeRecursive        []interface{} `json:"io_time_recursive"`
-		SectorsRecursive       []interface{} `json:"sectors_recursive"`
+		IoQueueRecursive       []any `json:"io_queue_recursive"`
+		IoServiceTimeRecursive []any `json:"io_service_time_recursive"`
+		IoWaitTimeRecursive    []any `json:"io_wait_time_recursive"`
+		IoMergedRecursive      []any `json:"io_merged_recursive"`
+		IoTimeRecursive        []any `json:"io_time_recursive"`
+		SectorsRecursive       []any `json:"sectors_recursive"`
 	} `json:"blkio_stats"`
 	NumProcs     int      `json:"num_procs"`
 	StorageStats struct{} `json:"storage_stats"`

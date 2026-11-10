@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/go-errors/errors"
-	"github.com/jesseduffield/gocui"
 	"github.com/mattn/go-runewidth"
 
 	// "github.com/jesseduffield/yaml"
@@ -96,13 +95,6 @@ func ColoredYamlString(str string) string {
 		}
 	}
 	return p.PrintTokens(tokens)
-}
-
-// MultiColoredString takes a string and an array of colour attributes and returns a colored
-// string with those attributes
-func MultiColoredString(str string, colorAttribute ...color.Attribute) string {
-	colour := color.New(colorAttribute...)
-	return ColoredStringDirect(str, colour)
 }
 
 // ColoredStringDirect used for aggregating a few color attributes rather than
@@ -237,33 +229,10 @@ func FormatDecimalBytes(b int) string {
 	return "a lot"
 }
 
-func ApplyTemplate(str string, object interface{}) string {
+func ApplyTemplate(str string, object any) string {
 	var buf bytes.Buffer
 	_ = template.Must(template.New("").Parse(str)).Execute(&buf, object)
 	return buf.String()
-}
-
-// GetGocuiAttribute gets the gocui color attribute from the string
-func GetGocuiAttribute(key string) gocui.Attribute {
-	colorMap := map[string]gocui.Attribute{
-		"default":   gocui.ColorDefault,
-		"black":     gocui.ColorBlack,
-		"red":       gocui.ColorRed,
-		"green":     gocui.ColorGreen,
-		"yellow":    gocui.ColorYellow,
-		"blue":      gocui.ColorBlue,
-		"magenta":   gocui.ColorMagenta,
-		"cyan":      gocui.ColorCyan,
-		"white":     gocui.ColorWhite,
-		"bold":      gocui.AttrBold,
-		"reverse":   gocui.AttrReverse,
-		"underline": gocui.AttrUnderline,
-	}
-	value, present := colorMap[key]
-	if present {
-		return value
-	}
-	return gocui.ColorDefault
 }
 
 // GetColorAttribute gets the color attribute from the string
@@ -301,7 +270,7 @@ func WithShortSha(str string) string {
 }
 
 // FormatMapItem is for displaying items in a map
-func FormatMapItem(padding int, k string, v interface{}) string {
+func FormatMapItem(padding int, k string, v any) string {
 	return fmt.Sprintf("%s%s %v\n", strings.Repeat(" ", padding), ColoredString(k+":", color.FgYellow), fmt.Sprintf("%v", v))
 }
 
@@ -311,7 +280,8 @@ func FormatMap(padding int, m map[string]string) string {
 		return "none\n"
 	}
 
-	output := "\n"
+	var output strings.Builder
+	output.WriteString("\n")
 
 	keys := make([]string, 0, len(m))
 	for key := range m {
@@ -319,10 +289,10 @@ func FormatMap(padding int, m map[string]string) string {
 	}
 	sort.Strings(keys)
 	for _, key := range keys {
-		output += FormatMapItem(padding, key, m[key])
+		output.WriteString(FormatMapItem(padding, key, m[key]))
 	}
 
-	return output
+	return output.String()
 }
 
 type multiErr []error
@@ -386,11 +356,11 @@ func OpensMenuStyle(str string) string {
 
 // MarshalIntoYaml gets any json-tagged data and marshal it into yaml saving original json structure.
 // Useful for structs from 3rd-party libs without yaml tags.
-func MarshalIntoYaml(data interface{}) ([]byte, error) {
+func MarshalIntoYaml(data any) ([]byte, error) {
 	return marshalIntoFormat(data, "yaml")
 }
 
-func marshalIntoFormat(data interface{}, format string) ([]byte, error) {
+func marshalIntoFormat(data any, format string) ([]byte, error) {
 	// First marshal struct->json to get the resulting structure declared by json tags
 	dataJSON, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {

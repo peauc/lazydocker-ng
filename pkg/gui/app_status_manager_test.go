@@ -8,7 +8,7 @@ import (
 func TestStatusManagerConcurrency(t *testing.T) {
 	m := &statusManager{}
 	var wg sync.WaitGroup
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		wg.Add(3)
 		go func() { defer wg.Done(); m.addWaitingStatus("task-a") }()
 		go func() { defer wg.Done(); m.removeStatus("task-a") }()

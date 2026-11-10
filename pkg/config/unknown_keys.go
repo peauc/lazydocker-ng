@@ -15,7 +15,7 @@ import (
 // the keys of map fields (such as replacements.imageNamePrefixes) are known.
 func unknownKeys(doc yaml.MapSlice) []string {
 	var unknown []string
-	walkMapping(doc, reflect.TypeOf(UserConfig{}), "", nil, &unknown)
+	walkMapping(doc, reflect.TypeFor[UserConfig](), "", nil, &unknown)
 	return unknown
 }
 
@@ -68,8 +68,7 @@ func walkValue(value any, t reflect.Type, path string, keys []string, unknown *[
 // field has no tag.
 func yamlFields(t reflect.Type) map[string]reflect.StructField {
 	fields := map[string]reflect.StructField{}
-	for i := range t.NumField() {
-		field := t.Field(i)
+	for field := range t.Fields() {
 		if !field.IsExported() {
 			continue
 		}

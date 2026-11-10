@@ -126,7 +126,7 @@ func TestSortContainers(t *testing.T) {
 
 	assert.Equal(t, len(actual), len(expected))
 
-	for i := 0; i < len(actual); i++ {
+	for i := range actual {
 		assertEqualContainers(t, expected[i], actual[i])
 	}
 }
@@ -142,7 +142,7 @@ func TestLegacySortedContainers(t *testing.T) {
 
 	assert.Equal(t, len(actual), len(expected))
 
-	for i := 0; i < len(actual); i++ {
+	for i := range actual {
 		assertEqualContainers(t, expected[i], actual[i])
 	}
 }
