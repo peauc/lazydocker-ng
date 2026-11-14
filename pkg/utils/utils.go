@@ -40,11 +40,21 @@ func SplitLines(multilineString string) []string {
 
 // WithPadding pads a string as much as you want
 func WithPadding(str string, padding int) string {
-	uncoloredStr := Decolorise(str)
-	if padding < runewidth.StringWidth(uncoloredStr) {
+	return padToWidth(str, displayWidth(str), padding)
+}
+
+// displayWidth returns the number of terminal cells str takes up, ignoring
+// colour escape sequences.
+func displayWidth(str string) int {
+	return runewidth.StringWidth(Decolorise(str))
+}
+
+// padToWidth pads str, whose display width is width, with spaces up to padding.
+func padToWidth(str string, width int, padding int) string {
+	if padding < width {
 		return str
 	}
-	return str + strings.Repeat(" ", padding-runewidth.StringWidth(uncoloredStr))
+	return str + strings.Repeat(" ", padding-width)
 }
 
 // ColoredString takes a string and a colour attribute and returns a colored
@@ -144,42 +154,49 @@ func RenderTable(rows [][]string) (string, error) {
 		return "", errors.New("Each item must return the same number of strings to display")
 	}
 
-	columnPadWidths := getPadWidths(rows)
-	paddedDisplayRows := getPaddedDisplayStrings(rows, columnPadWidths)
-
-	return strings.Join(paddedDisplayRows, "\n"), nil
+	return strings.Join(renderPaddedRows(rows), "\n"), nil
 }
+
+var colorEscapeRegexp = regexp.MustCompile(`\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mK]`)
 
 // Decolorise strips a string of color
 func Decolorise(str string) string {
-	re := regexp.MustCompile(`\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mK]`)
-	return re.ReplaceAllString(str, "")
+	// most strings carry no escape sequence, and the regexp is slow to say so
+	if !strings.Contains(str, "\x1B") {
+		return str
+	}
+	return colorEscapeRegexp.ReplaceAllString(str, "")
 }
 
-func getPadWidths(rows [][]string) []int {
-	if len(rows[0]) <= 1 {
-		return []int{}
-	}
-	columnPadWidths := make([]int, len(rows[0])-1)
-	for i := range columnPadWidths {
-		for _, cells := range rows {
-			uncoloredCell := Decolorise(cells[i])
+// renderPaddedRows pads every column but the last to the width of its widest
+// cell and joins each row's cells with a space.
+func renderPaddedRows(rows [][]string) []string {
+	paddedColumnCount := max(len(rows[0])-1, 0)
 
-			if runewidth.StringWidth(uncoloredCell) > columnPadWidths[i] {
-				columnPadWidths[i] = runewidth.StringWidth(uncoloredCell)
-			}
-		}
-	}
-	return columnPadWidths
-}
-
-func getPaddedDisplayStrings(rows [][]string, columnPadWidths []int) []string {
-	paddedDisplayRows := make([]string, len(rows))
+	// each cell is measured once: measuring strips colour codes, which is the
+	// expensive part of rendering a table
+	cellWidths := make([]int, len(rows)*paddedColumnCount)
+	columnPadWidths := make([]int, paddedColumnCount)
 	for i, cells := range rows {
-		for j, columnPadWidth := range columnPadWidths {
-			paddedDisplayRows[i] += WithPadding(cells[j], columnPadWidth) + " "
+		for j := range paddedColumnCount {
+			width := displayWidth(cells[j])
+			cellWidths[i*paddedColumnCount+j] = width
+			columnPadWidths[j] = max(columnPadWidths[j], width)
 		}
-		paddedDisplayRows[i] += cells[len(columnPadWidths)]
+	}
+
+	paddedDisplayRows := make([]string, len(rows))
+	var builder strings.Builder
+	for i, cells := range rows {
+		builder.Reset()
+		for j, columnPadWidth := range columnPadWidths {
+			builder.WriteString(padToWidth(cells[j], cellWidths[i*paddedColumnCount+j], columnPadWidth))
+			builder.WriteByte(' ')
+		}
+		if len(cells) > 0 {
+			builder.WriteString(cells[paddedColumnCount])
+		}
+		paddedDisplayRows[i] = builder.String()
 	}
 	return paddedDisplayRows
 }

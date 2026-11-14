@@ -174,52 +174,47 @@ func TestDisplayArraysAligned(t *testing.T) {
 	}
 }
 
-// TestGetPaddedDisplayStrings is a function.
-func TestGetPaddedDisplayStrings(t *testing.T) {
+func TestRenderPaddedRows(t *testing.T) {
 	type scenario struct {
-		stringArrays [][]string
-		padWidths    []int
-		expected     []string
+		name     string
+		rows     [][]string
+		expected []string
 	}
 
+	red := "\x1b[31maa\x1b[0m"
+
 	scenarios := []scenario{
+		{"single column is not padded", [][]string{{"a"}, {""}}, []string{"a", ""}},
+		{"no columns", [][]string{{}, {}}, []string{"", ""}},
+		{"two columns", [][]string{{"a", "b"}, {"c", "d"}}, []string{"a b", "c d"}},
 		{
-			[][]string{{"a", "b"}, {"c", "d"}},
-			[]int{1},
-			[]string{"a b", "c d"},
+			"every column but the last is padded to its widest cell",
+			[][]string{{"aa", "b", "ccc"}, {"c", "d", "e"}},
+			[]string{"aa b ccc", "c  d e"},
+		},
+		{
+			"colour codes do not count towards the width",
+			[][]string{{red, "b"}, {"cccc", "d"}},
+			[]string{red + "   b", "cccc d"},
+		},
+		{
+			"wide runes count as two cells",
+			[][]string{{"日本", "b"}, {"c", "d"}},
+			[]string{"日本 b", "c    d"},
 		},
 	}
 
 	for _, s := range scenarios {
-		assert.EqualValues(t, s.expected, getPaddedDisplayStrings(s.stringArrays, s.padWidths))
+		t.Run(s.name, func(t *testing.T) {
+			assert.Equal(t, s.expected, renderPaddedRows(s.rows))
+		})
 	}
 }
 
-// TestGetPadWidths is a function.
-func TestGetPadWidths(t *testing.T) {
-	type scenario struct {
-		stringArrays [][]string
-		expected     []int
-	}
-
-	scenarios := []scenario{
-		{
-			[][]string{{""}, {""}},
-			[]int{},
-		},
-		{
-			[][]string{{"a"}, {""}},
-			[]int{},
-		},
-		{
-			[][]string{{"aa", "b", "ccc"}, {"c", "d", "e"}},
-			[]int{2, 1},
-		},
-	}
-
-	for _, s := range scenarios {
-		assert.EqualValues(t, s.expected, getPadWidths(s.stringArrays))
-	}
+func TestDecolorise(t *testing.T) {
+	assert.Equal(t, "plain", Decolorise("plain"))
+	assert.Equal(t, "red", Decolorise("\x1b[31mred\x1b[0m"))
+	assert.Equal(t, "ab", Decolorise("a\x1b[1;31mb\x1b[0m\x1b[K"))
 }
 
 func TestRenderTable(t *testing.T) {
