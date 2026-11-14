@@ -364,7 +364,7 @@ func (gui *Gui) Run() error {
 		gui.goEvery(time.Millisecond*1000, gui.updateContainerDetails)
 		gui.goEvery(time.Millisecond*1000, gui.checkForContextChange)
 		// we need to regularly re-render these because their stats will be changed in the background
-		gui.goEvery(time.Millisecond*1000, gui.renderContainersAndServices)
+		gui.goEvery(time.Millisecond*1000, gui.renderStatsInLists)
 	}()
 
 	err = g.MainLoop()

@@ -52,28 +52,28 @@ func displayPorts(c *commands.Container) string {
 	return strings.Join(portStrings, ", ")
 }
 
+var shortStatusMap = map[string]string{
+	"paused":     "P",
+	"exited":     "X",
+	"created":    "C",
+	"removing":   "RM",
+	"restarting": "RS",
+	"running":    "R",
+	"dead":       "D",
+}
+
+var iconStatusMap = map[string]rune{
+	"paused":     '◫',
+	"exited":     '⨯',
+	"created":    '+',
+	"removing":   '−',
+	"restarting": '⟳',
+	"running":    '▶',
+	"dead":       '!',
+}
+
 // getContainerDisplayStatus returns the colored status of the container
 func getContainerDisplayStatus(guiConfig *config.GuiConfig, c *commands.Container) string {
-	shortStatusMap := map[string]string{
-		"paused":     "P",
-		"exited":     "X",
-		"created":    "C",
-		"removing":   "RM",
-		"restarting": "RS",
-		"running":    "R",
-		"dead":       "D",
-	}
-
-	iconStatusMap := map[string]rune{
-		"paused":     '◫',
-		"exited":     '⨯',
-		"created":    '+',
-		"removing":   '−',
-		"restarting": '⟳',
-		"running":    '▶',
-		"dead":       '!',
-	}
-
 	state := c.GetSummary().State
 	var containerState string
 	switch guiConfig.ContainerStatusHealthStyle {
@@ -109,32 +109,28 @@ func getContainerDisplaySubstatus(guiConfig *config.GuiConfig, c *commands.Conta
 	}
 }
 
+var healthStatusColorMap = map[string]color.Attribute{
+	"healthy":   color.FgGreen,
+	"unhealthy": color.FgRed,
+	"starting":  color.FgYellow,
+}
+
+var shortHealthStatusMap = map[string]string{
+	"healthy":   "H",
+	"unhealthy": "U",
+	"starting":  "S",
+}
+
+var iconHealthStatusMap = map[string]rune{
+	"healthy":   '✔',
+	"unhealthy": '?',
+	"starting":  '…',
+}
+
 func getHealthStatus(guiConfig *config.GuiConfig, c *commands.Container) string {
 	details := c.GetDetails()
-	if details.ContainerJSONBase == nil {
+	if details.ContainerJSONBase == nil || details.State.Health == nil {
 		return ""
-	}
-
-	healthStatusColorMap := map[string]color.Attribute{
-		"healthy":   color.FgGreen,
-		"unhealthy": color.FgRed,
-		"starting":  color.FgYellow,
-	}
-
-	if details.State.Health == nil {
-		return ""
-	}
-
-	shortHealthStatusMap := map[string]string{
-		"healthy":   "H",
-		"unhealthy": "U",
-		"starting":  "S",
-	}
-
-	iconHealthStatusMap := map[string]rune{
-		"healthy":   '✔',
-		"unhealthy": '?',
-		"starting":  '…',
 	}
 
 	var healthStatus string

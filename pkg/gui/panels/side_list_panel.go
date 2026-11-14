@@ -3,7 +3,9 @@ package panels
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
+	"sync/atomic"
 
 	"github.com/go-errors/errors"
 	"github.com/jesseduffield/gocui"
@@ -59,6 +61,9 @@ type SideListPanel[T comparable] struct {
 
 	// This can be nil if you want to always show the panel
 	Hide func() bool
+
+	// the table that the view currently shows; only written on the UI thread
+	shownTable atomic.Pointer[string]
 }
 
 var _ ISideListPanel = &SideListPanel[int]{}
@@ -198,27 +203,30 @@ func (self *SideListPanel[T]) SetItems(items []T) {
 
 func (self *SideListPanel[T]) FilterAndSort() {
 	filterString := self.Gui.FilterString(self.View)
+	ignoreStrings := self.Gui.IgnoreStrings()
 
 	self.List.Filter(func(item T, index int) bool {
 		if self.Filter != nil && !self.Filter(item) {
 			return false
 		}
 
-		if lo.SomeBy(self.Gui.IgnoreStrings(), func(ignore string) bool {
-			return lo.SomeBy(self.GetTableCells(item), func(searchString string) bool {
-				return strings.Contains(searchString, ignore)
+		if filterString == "" && len(ignoreStrings) == 0 {
+			return true
+		}
+
+		// built once per item: the cells are not free to make
+		cells := self.GetTableCells(item)
+		anyCellContains := func(needle string) bool {
+			return slices.ContainsFunc(cells, func(cell string) bool {
+				return strings.Contains(cell, needle)
 			})
-		}) {
+		}
+
+		if slices.ContainsFunc(ignoreStrings, anyCellContains) {
 			return false
 		}
 
-		if filterString != "" {
-			return lo.SomeBy(self.GetTableCells(item), func(searchString string) bool {
-				return strings.Contains(searchString, filterString)
-			})
-		}
-
-		return true
+		return filterString == "" || anyCellContains(filterString)
 	})
 
 	self.List.Sort(self.Sort)
@@ -230,28 +238,63 @@ func (self *SideListPanel[T]) RerenderList() error {
 	self.FilterAndSort()
 
 	self.Gui.Update(func() error {
-		self.View.Clear()
-		table := lo.Map(self.List.GetItems(), func(item T, index int) []string {
-			return self.GetTableCells(item)
-		})
-		renderedTable, err := utils.RenderTable(table)
+		renderedTable, err := self.renderTable()
 		if err != nil {
 			return err
 		}
-		fmt.Fprint(self.View, renderedTable)
-
-		if self.OnRerender != nil {
-			if err := self.OnRerender(); err != nil {
-				return err
-			}
-		}
-
-		if self.Gui.IsCurrentView(self.View) {
-			return self.HandleSelect()
-		}
-		return nil
+		return self.writeList(renderedTable)
 	})
 
+	return nil
+}
+
+// RerenderListIfChanged is RerenderList for callers that poll: it leaves a
+// hidden panel alone, and when the list would look the same as it does now it
+// returns without asking for a redraw of the screen.
+func (self *SideListPanel[T]) RerenderListIfChanged() error {
+	if self.IsHidden() {
+		return nil
+	}
+
+	self.FilterAndSort()
+
+	renderedTable, err := self.renderTable()
+	if err != nil {
+		return err
+	}
+	if shown := self.shownTable.Load(); shown != nil && *shown == renderedTable {
+		return nil
+	}
+
+	self.Gui.Update(func() error {
+		return self.writeList(renderedTable)
+	})
+
+	return nil
+}
+
+func (self *SideListPanel[T]) renderTable() (string, error) {
+	table := lo.Map(self.List.GetItems(), func(item T, index int) []string {
+		return self.GetTableCells(item)
+	})
+	return utils.RenderTable(table)
+}
+
+// writeList puts the rendered table in the view. It must run on the UI thread.
+func (self *SideListPanel[T]) writeList(renderedTable string) error {
+	self.View.Clear()
+	fmt.Fprint(self.View, renderedTable)
+	self.shownTable.Store(&renderedTable)
+
+	if self.OnRerender != nil {
+		if err := self.OnRerender(); err != nil {
+			return err
+		}
+	}
+
+	if self.Gui.IsCurrentView(self.View) {
+		return self.HandleSelect()
+	}
 	return nil
 }
 

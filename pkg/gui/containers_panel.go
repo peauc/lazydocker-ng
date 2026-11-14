@@ -326,6 +326,16 @@ func (gui *Gui) renderContainersAndServices() error {
 	return nil
 }
 
+// renderStatsInLists refreshes the lists that show container stats, which
+// change in the background. It only redraws when a visible list has changed.
+func (gui *Gui) renderStatsInLists() error {
+	if err := gui.Panels.Services.RerenderListIfChanged(); err != nil {
+		return err
+	}
+
+	return gui.Panels.Containers.RerenderListIfChanged()
+}
+
 func (gui *Gui) handleHideStoppedContainers(g *gocui.Gui, v *gocui.View) error {
 	gui.StateMutex.Lock()
 	gui.State.ShowExitedContainers = !gui.State.ShowExitedContainers
