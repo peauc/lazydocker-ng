@@ -7,8 +7,8 @@ import (
 
 // the benchmark colours cells itself: fatih/color emits nothing when the test
 // output is not a terminal
-func colored(str string, code int) string {
-	return fmt.Sprintf("\x1b[%dm%s\x1b[0m", code, str)
+func colored(str string) string {
+	return "\x1b[32m" + str + "\x1b[0m"
 }
 
 // containerLikeRows builds rows shaped like the containers list: six cells,
@@ -17,12 +17,12 @@ func containerLikeRows(count int) [][]string {
 	rows := make([][]string, count)
 	for i := range rows {
 		rows[i] = []string{
-			colored("running", 32),
-			colored("(healthy)", 32),
+			colored("running"),
+			colored("(healthy)"),
 			fmt.Sprintf("project-service-%d", i),
-			colored(fmt.Sprintf("%d.%02d%%", i%100, i%97), 32),
-			colored(fmt.Sprintf("%d->80/tcp, %d->443/tcp", 8000+i, 9000+i), 32),
-			colored("registry.example.com/team/image:1.2.3", 32),
+			colored(fmt.Sprintf("%d.%02d%%", i%100, i%97)),
+			colored(fmt.Sprintf("%d->80/tcp, %d->443/tcp", 8000+i, 9000+i)),
+			colored("registry.example.com/team/image:1.2.3"),
 		}
 	}
 	return rows

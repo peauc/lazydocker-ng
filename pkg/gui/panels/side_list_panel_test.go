@@ -94,11 +94,10 @@ func TestFilterAndSortBuildsCellsOncePerItem(t *testing.T) {
 		assert.Equal(t, 1, calls, name)
 	}
 
-	names := []string{}
-	for _, item := range panel.List.GetItems() {
-		names = append(names, item.name)
-	}
-	assert.Equal(t, []string{"apple", "banana"}, names)
+	items := panel.List.GetItems()
+	assert.Len(t, items, 2)
+	assert.Equal(t, "apple", items[0].name)
+	assert.Equal(t, "banana", items[1].name)
 }
 
 func TestFilterAndSortSkipsCellsWithoutFilters(t *testing.T) {
