@@ -105,6 +105,9 @@ func (gui *Gui) reloadImages() error {
 }
 
 func (gui *Gui) refreshStateImages() error {
+	gui.ImagesRefreshMutex.Lock()
+	defer gui.ImagesRefreshMutex.Unlock()
+
 	images, err := gui.DockerCommand.RefreshImages()
 	if err != nil {
 		return err

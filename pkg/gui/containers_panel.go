@@ -273,6 +273,9 @@ func (gui *Gui) refreshContainersAndServices() error {
 		return nil
 	}
 
+	gui.ContainersRefreshMutex.Lock()
+	defer gui.ContainersRefreshMutex.Unlock()
+
 	// keep track of current service selected so that we can reposition our cursor if it moves position in the list
 	originalSelectedLineIdx := gui.Panels.Services.SelectedIdx
 	selectedService, isServiceSelected := gui.Panels.Services.List.TryGet(originalSelectedLineIdx)

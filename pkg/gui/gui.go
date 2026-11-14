@@ -50,6 +50,8 @@ type Gui struct {
 	backgroundCancel context.CancelFunc
 	// triggerRefresh triggers a full refresh of all panels.
 	triggerRefresh func()
+	// refreshers holds one background refresh per panel, see refresh.
+	refreshers []*utils.Coalescer
 	// mainRedraw redraws the screen after something wrote to the main view from
 	// outside the UI thread. Nil until Run sets it up.
 	mainRedraw *utils.Throttle
@@ -75,6 +77,15 @@ type Mutexes struct {
 	SubprocessMutex deadlock.Mutex
 	ViewStackMutex  deadlock.Mutex
 	StateMutex      deadlock.RWMutex // protects guiState fields accessed from background goroutines
+
+	// Each of these is held from asking Docker for a panel's items until the
+	// panel has them, so that two refreshes of a panel cannot finish in the
+	// wrong order and leave the older answer on screen.
+	ProjectsRefreshMutex   deadlock.Mutex
+	ContainersRefreshMutex deadlock.Mutex
+	ImagesRefreshMutex     deadlock.Mutex
+	VolumesRefreshMutex    deadlock.Mutex
+	NetworksRefreshMutex   deadlock.Mutex
 }
 
 type mainPanelState struct {
@@ -197,6 +208,8 @@ func NewGui(log *logrus.Entry, dockerCommand *commands.DockerCommand, oSCommand 
 		taskManager:   tasks.NewTaskManager(log, tr),
 		ErrorChan:     errorChan,
 	}
+
+	gui.refreshers = gui.newRefreshers()
 
 	deadlock.Opts.Disable = !gui.Config.Debug
 	deadlock.Opts.DeadlockTimeout = 10 * time.Second
@@ -395,32 +408,33 @@ func (gui *Gui) updateContainerDetails() error {
 	return gui.DockerCommand.RefreshContainerDetails(gui.Panels.Containers.List.GetAllItems())
 }
 
+// refresh reloads every panel in the background. The panels load side by side,
+// but a panel never loads twice at once: when a refresh is asked for while a
+// panel is still loading, that panel loads once more when it is done.
 func (gui *Gui) refresh() {
-	go func() {
-		if err := gui.refreshProjects(); err != nil {
-			gui.Log.Error(err)
-		}
-	}()
-	go func() {
-		if err := gui.refreshContainersAndServices(); err != nil {
-			gui.Log.Error(err)
-		}
-	}()
-	go func() {
-		if err := gui.reloadVolumes(); err != nil {
-			gui.Log.Error(err)
-		}
-	}()
-	go func() {
-		if err := gui.reloadNetworks(); err != nil {
-			gui.Log.Error(err)
-		}
-	}()
-	go func() {
-		if err := gui.reloadImages(); err != nil {
-			gui.Log.Error(err)
-		}
-	}()
+	for _, refresher := range gui.refreshers {
+		go refresher.Run()
+	}
+}
+
+func (gui *Gui) newRefreshers() []*utils.Coalescer {
+	loads := []func() error{
+		gui.refreshProjects,
+		gui.refreshContainersAndServices,
+		gui.reloadVolumes,
+		gui.reloadNetworks,
+		gui.reloadImages,
+	}
+
+	refreshers := make([]*utils.Coalescer, len(loads))
+	for i, load := range loads {
+		refreshers[i] = utils.NewCoalescer(func() {
+			if err := load(); err != nil {
+				gui.Log.Error(err)
+			}
+		})
+	}
+	return refreshers
 }
 
 func (gui *Gui) listenForEvents(ctx context.Context, refresh func()) {

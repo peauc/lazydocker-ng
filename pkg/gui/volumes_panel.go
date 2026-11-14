@@ -99,6 +99,9 @@ func (gui *Gui) reloadVolumes() error {
 }
 
 func (gui *Gui) refreshStateVolumes() error {
+	gui.VolumesRefreshMutex.Lock()
+	defer gui.VolumesRefreshMutex.Unlock()
+
 	volumes, err := gui.DockerCommand.RefreshVolumes()
 	if err != nil {
 		return err

@@ -94,6 +94,9 @@ func (gui *Gui) reloadNetworks() error {
 }
 
 func (gui *Gui) refreshStateNetworks() error {
+	gui.NetworksRefreshMutex.Lock()
+	defer gui.NetworksRefreshMutex.Unlock()
+
 	networks, err := gui.DockerCommand.RefreshNetworks()
 	if err != nil {
 		return err

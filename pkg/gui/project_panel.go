@@ -73,6 +73,9 @@ func (gui *Gui) getProjectPanel() *panels.SideListPanel[*commands.Project] {
 }
 
 func (gui *Gui) refreshProjects() error {
+	gui.ProjectsRefreshMutex.Lock()
+	defer gui.ProjectsRefreshMutex.Unlock()
+
 	// Get containers using the commands layer
 	currentContainers := gui.Panels.Containers.List.GetItems()
 	containers, err := gui.DockerCommand.GetContainers(currentContainers)
