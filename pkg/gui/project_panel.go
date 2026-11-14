@@ -150,8 +150,10 @@ func (gui *Gui) renderAllLogs(project *commands.Project) tasks.TaskFunc {
 				),
 			)
 
-			cmd.Stdout = gui.Views.Main
-			cmd.Stderr = gui.Views.Main
+			// one writer for both, so that os/exec serialises their writes
+			output := mainViewWriter{gui: gui}
+			cmd.Stdout = output
+			cmd.Stderr = output
 
 			gui.OSCommand.PrepareForChildren(cmd)
 			_ = cmd.Start()

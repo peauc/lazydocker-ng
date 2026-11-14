@@ -60,7 +60,7 @@ func (gui *Gui) switchDockerContext(contextName string) error {
 
 		// Pause goEvery loops to prevent concurrent access during switch
 		gui.PauseBackgroundThreads.Store(true)
-		defer gui.PauseBackgroundThreads.Store(false)
+		defer gui.resumeBackgroundThreads()
 
 		// Clear stale data from all panels synchronously.
 		// RerenderList (called inside clearAllPanelData) schedules a gui.g.Update

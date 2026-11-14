@@ -50,6 +50,9 @@ type Gui struct {
 	backgroundCancel context.CancelFunc
 	// triggerRefresh triggers a full refresh of all panels.
 	triggerRefresh func()
+	// mainRedraw redraws the screen after something wrote to the main view from
+	// outside the UI thread. Nil until Run sets it up.
+	mainRedraw *utils.Throttle
 	// switchingContext guards against concurrent context switches.
 	switchingContext atomic.Bool
 
@@ -300,6 +303,9 @@ func (gui *Gui) Run() error {
 	throttledRefresh := utils.NewThrottle(50*time.Millisecond, gui.refresh)
 	defer throttledRefresh.Stop()
 
+	gui.mainRedraw = utils.NewThrottle(mainRedrawPeriod, gui.redrawForMain)
+	defer gui.mainRedraw.Stop()
+
 	go func() {
 		for err := range gui.ErrorChan {
 			if err == nil {
@@ -360,7 +366,6 @@ func (gui *Gui) Run() error {
 	go func() {
 		throttledRefresh.Trigger()
 
-		gui.goEvery(time.Millisecond*30, gui.reRenderMain)
 		gui.goEvery(time.Millisecond*1000, gui.updateContainerDetails)
 		gui.goEvery(time.Millisecond*1000, gui.checkForContextChange)
 		// we need to regularly re-render these because their stats will be changed in the background
@@ -477,17 +482,45 @@ func (gui *Gui) checkForContextChange() error {
 	return gui.newLineFocused(gui.g.CurrentView())
 }
 
-func (gui *Gui) reRenderMain() error {
-	mainView := gui.Views.Main
-	if mainView == nil {
-		return nil
+// mainRedrawPeriod caps how often streamed content (logs, mostly) makes us
+// redraw the screen.
+const mainRedrawPeriod = 30 * time.Millisecond
+
+// requestMainRedraw asks for the screen to be redrawn soon. Content written to
+// the main view from a background goroutine only shows up at the next redraw,
+// so whoever writes it calls this. Requests within mainRedrawPeriod of each
+// other share one redraw.
+func (gui *Gui) requestMainRedraw() {
+	if gui.mainRedraw != nil {
+		gui.mainRedraw.Trigger()
 	}
-	if mainView.IsTainted() {
-		gui.g.Update(func(g *gocui.Gui) error {
-			return nil
-		})
+}
+
+func (gui *Gui) redrawForMain() {
+	if gui.PauseBackgroundThreads.Load() {
+		// whoever paused us asks for a redraw when they are done
+		return
 	}
-	return nil
+	gui.g.Update(func(*gocui.Gui) error { return nil })
+}
+
+// resumeBackgroundThreads undoes PauseBackgroundThreads.Store(true) and shows
+// whatever was written to the main view in the meantime.
+func (gui *Gui) resumeBackgroundThreads() {
+	gui.PauseBackgroundThreads.Store(false)
+	gui.requestMainRedraw()
+}
+
+// mainViewWriter writes to the main view and asks for a redraw. Use it rather
+// than the view itself when streaming from a background goroutine.
+type mainViewWriter struct {
+	gui *Gui
+}
+
+func (w mainViewWriter) Write(p []byte) (int, error) {
+	n, err := w.gui.Views.Main.Write(p)
+	w.gui.requestMainRedraw()
+	return n, err
 }
 
 func (gui *Gui) quit(g *gocui.Gui, v *gocui.View) error {

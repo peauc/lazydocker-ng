@@ -38,7 +38,7 @@ func (gui *Gui) runSubprocessWithMessage(cmd *exec.Cmd, msg string) error {
 		return gui.createErrorPanel(err.Error())
 	}
 
-	gui.PauseBackgroundThreads.Store(false)
+	gui.resumeBackgroundThreads()
 
 	return err
 }

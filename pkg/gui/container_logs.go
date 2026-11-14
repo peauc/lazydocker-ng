@@ -35,9 +35,7 @@ func (gui *Gui) renderContainerLogsToMainAux(ctx context.Context, container *com
 		notifyStopped <- struct{}{}
 	}()
 
-	mainView := gui.Views.Main
-
-	if err := gui.writeContainerLogs(ctx, container, mainView); err != nil {
+	if err := gui.writeContainerLogs(ctx, container, mainViewWriter{gui: gui}); err != nil {
 		gui.Log.Error(err)
 	}
 

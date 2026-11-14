@@ -261,6 +261,8 @@ func (gui *Gui) clearMainView() {
 
 	mainView.SetOrigin(0, 0)
 	mainView.SetCursor(0, 0)
+
+	gui.requestMainRedraw()
 }
 
 func (gui *Gui) HandleClick(v *gocui.View, itemCount int, selectedLine *int, handleSelect func() error) error {
