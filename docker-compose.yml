@@ -1,15 +1,11 @@
 services:
-  lazydocker:
+  lazydocker-ng:
     build:
-      context: https://github.com/jesseduffield/lazydocker.git
-      args:
-        BASE_IMAGE_BUILDER: golang
-        GOARCH: amd64
-        GOARM:
-    image: lazyteam/lazydocker
-    container_name: lazydocker
+      context: https://github.com/peauc/lazydocker-ng.git
+    image: lazydocker-ng
+    container_name: lazydocker-ng
     stdin_open: true
     tty: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./config:/.config/jesseduffield/lazydocker
+      - ./config:/.config/lazydocker-ng

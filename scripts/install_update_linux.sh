@@ -1,24 +1,39 @@
 #!/bin/bash
+set -euo pipefail
+
+REPO=peauc/lazydocker-ng
 
 # allow specifying different destination directory
 DIR="${DIR:-"$HOME/.local/bin"}"
 
 # map different architecture variations to the available binaries
-ARCH=$(uname -m)
-case $ARCH in
+MACHINE=$(uname -m)
+case $MACHINE in
+    x86_64|amd64) ARCH=x86_64 ;;
+    aarch64*|arm64) ARCH=arm64 ;;
     i386|i686) ARCH=x86 ;;
     armv6*) ARCH=armv6 ;;
     armv7*) ARCH=armv7 ;;
-    aarch64*) ARCH=arm64 ;;
+    *)
+        echo "lazydocker-ng: unsupported architecture '$MACHINE'" >&2
+        exit 1
+        ;;
 esac
 
 # prepare the download URL
-GITHUB_LATEST_VERSION=$(curl -L -s -H 'Accept: application/json' https://github.com/jesseduffield/lazydocker/releases/latest | sed -e 's/.*"tag_name":"\([^"]*\)".*/\1/')
-GITHUB_FILE="lazydocker_${GITHUB_LATEST_VERSION//v/}_$(uname -s)_${ARCH}.tar.gz"
-GITHUB_URL="https://github.com/jesseduffield/lazydocker/releases/download/${GITHUB_LATEST_VERSION}/${GITHUB_FILE}"
+TAG=$(curl -fsSL -H 'Accept: application/json' "https://github.com/$REPO/releases/latest" | sed -e 's/.*"tag_name":"\([^"]*\)".*/\1/')
+if [ -z "$TAG" ]; then
+    echo "lazydocker-ng: could not find the latest release of $REPO" >&2
+    exit 1
+fi
+FILE="lazydocker-ng_${TAG#v}_$(uname -s)_${ARCH}.tar.gz"
+URL="https://github.com/$REPO/releases/download/${TAG}/${FILE}"
 
 # install/update the local binary
-curl -L -o lazydocker.tar.gz $GITHUB_URL
-tar xzvf lazydocker.tar.gz lazydocker
-install -Dm 755 lazydocker -t "$DIR"
-rm lazydocker lazydocker.tar.gz
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+curl -fL -o "$tmp/lazydocker-ng.tar.gz" "$URL"
+tar xzf "$tmp/lazydocker-ng.tar.gz" -C "$tmp" lazydocker-ng
+mkdir -p "$DIR"
+install -m 755 "$tmp/lazydocker-ng" "$DIR/lazydocker-ng"
+echo "installed lazydocker-ng $TAG to $DIR"

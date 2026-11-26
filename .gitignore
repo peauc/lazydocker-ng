@@ -1,4 +1,7 @@
-lazydocker*
+/lazydocker-ng
+/lazydocker-ng.exe
+coverage.txt
+profile.out
 TODO.md
 Lazydocker.code-workspace
 .vscode

@@ -25,7 +25,7 @@ If applicable, add screenshots to help explain your problem.
 
 **Desktop (please complete the following information):**
  - OS: [e.g. Windows]
- - Lazydocker Version [e.g. v0.1.45]
+ - lazydocker-ng version (run `lazydocker-ng --version`) [e.g. 0.29.0]
  - The last commit id if you built project from sources (run : ```git rev-parse HEAD```)
 
 **Additional context**
